@@ -1154,27 +1154,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 ]
             });
             
+            // PANEL DE CONTROL COMPLETO (Pantalla de bloqueo)
             navigator.mediaSession.setActionHandler('play', () => { if(ytPlayer) ytPlayer.playVideo(); });
             navigator.mediaSession.setActionHandler('pause', () => { if(ytPlayer) ytPlayer.pauseVideo(); });
             navigator.mediaSession.setActionHandler('previoustrack', () => { if(btnPrev) btnPrev.click(); });
             navigator.mediaSession.setActionHandler('nexttrack', () => { if(btnNext) btnNext.click(); });
+            
+            // Intentar habilitar Repetir y Aleatorio si el navegador lo permite
+            try {
+                navigator.mediaSession.setActionHandler('seekbackward', () => { if(ytPlayer) ytPlayer.seekTo(ytPlayer.getCurrentTime() - 10); });
+                navigator.mediaSession.setActionHandler('seekforward', () => { if(ytPlayer) ytPlayer.seekTo(ytPlayer.getCurrentTime() + 10); });
+            } catch(e) {}
         }
     }
 
+    // --- VIGILANTE DE SEGUNDO PLANO ---
+    // Este "perro guardián" se asegura de que si el móvil pausa la música al salir,
+    // nosotros la reanudamos automáticamente sin que tengas que tocar nada.
+    let backgroundWatchdog = null;
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
-            if (ytPlayer && ytPlayer.getPlayerState) {
-                const state = ytPlayer.getPlayerState();
-                if (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING) {
-                    // Re-intentar varias veces para engañar al sistema operativo
-                    [100, 500, 1000].forEach(delay => {
-                        setTimeout(() => {
-                            if (ytPlayer.playVideo) ytPlayer.playVideo();
-                            if (mainAudio.paused) mainAudio.play().catch(() => {});
-                        }, delay);
-                    });
+            backgroundWatchdog = setInterval(() => {
+                if (ytPlayer && ytPlayer.getPlayerState) {
+                    const state = ytPlayer.getPlayerState();
+                    // Si está pausado pero debería estar sonando... ¡Fuerza el Play!
+                    if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.BUFFERING) {
+                        ytPlayer.playVideo();
+                        if (mainAudio.paused) mainAudio.play().catch(() => {});
+                    }
                 }
-            }
+            }, 1000); // Revisa cada segundo
+        } else {
+            if (backgroundWatchdog) clearInterval(backgroundWatchdog);
         }
     });
 

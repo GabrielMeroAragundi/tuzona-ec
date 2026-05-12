@@ -1158,12 +1158,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).catch(async (e) => {
                     console.error(`Error en fuente ${sourceIndex}:`, e);
                     
-                    // --- PLAN B: EXTRACCIÓN DESDE EL NAVEGADOR (IP DEL USUARIO) ---
+                    // --- PLAN B: EXTRACCIÓN DESDE EL NAVEGADOR CON PROXY CORS ---
                     if (sourceIndex === 0) {
-                        console.log("Intentando extracción directa desde el navegador...");
+                        console.log("Intentando extracción directa con proxy...");
                         try {
-                            const res = await fetch(`https://yt-api.com/api/video/info?id=${video.id}`);
-                            const data = await res.json();
+                            const target = encodeURIComponent(`https://yt-api.com/api/video/info?id=${video.id}`);
+                            const res = await fetch(`https://api.allorigins.win/get?url=${target}`);
+                            const json = await res.json();
+                            const data = JSON.parse(json.contents);
                             const formats = data.data?.adaptiveFormats || [];
                             const audio = formats.find(f => f.type?.includes('audio'));
                             if (audio && audio.url) {

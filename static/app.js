@@ -1020,23 +1020,26 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             try {
-                // MÉTODO INFALIBLE: REDIRECCIÓN DIRECTA A MOTOR DE DESCARGA
-                // Esto evita bloqueos de CORS y de Vercel al 100%
-                const downloadLink = `https://api.vevioz.com/api/button/mp3/${videoId}`;
-                
-                window.open(downloadLink, '_blank');
-                
-                // Avisar al servidor para que cuente la descarga (Estadísticas)
-                fetch('/api/download', {
+                const response = await fetch('/api/download', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ids: [videoId], internal_stat_only: true })
-                }).catch(() => {});
+                    body: JSON.stringify({ ids: [videoId], format: fmt })
+                });
 
-                showNotification("Abriendo link de descarga... ✅");
-            } catch (error) {
-                showNotification("Error al intentar abrir el motor de descarga.", true);
-            }
+                const result = await response.json();
+                
+                if (result.url) {
+                    // Abrir el link de descarga en una pestaña nueva/oculta
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = result.url;
+                    a.target = '_blank';
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => document.body.removeChild(a), 100);
+                } else if (result.error) {
+                    throw new Error(result.error);
+                }
 
             } catch (error) {
                 console.error(`Fallo en ${videoId}:`, error);
@@ -1069,78 +1072,77 @@ document.addEventListener('DOMContentLoaded', () => {
     const playerTitle   = document.getElementById('player-title');
     const playerChannel = document.getElementById('player-channel');
     const playerThumb   = document.getElementById('player-thumb');
-    // --- DOBLE MOTOR DE REPRODUCCIÓN ---
-    const mainAudio     = document.getElementById('main-audio');
+    // --- NUEVO MOTOR DE REPRODUCCIÓN (YOUTUBE IFRAME API) ---
     let ytPlayer = null;
     let progressTimer = null;
-    let activeEngine = 'audio'; // 'audio' o 'youtube'
 
     window.onYouTubeIframeAPIReady = () => {
         ytPlayer = new YT.Player('yt-handler', {
-            height: '1', width: '1', videoId: '',
-            playerVars: { 'autoplay': 0, 'controls': 0, 'disablekb': 1, 'fs': 0, 'rel': 0, 'modestbranding': 1 },
-            events: { 'onReady': () => console.log("YouTube Ready"), 'onStateChange': onPlayerStateChange }
+            height: '1',
+            width: '1',
+            videoId: '',
+            playerVars: {
+                'autoplay': 0,
+                'controls': 0,
+                'disablekb': 1,
+                'fs': 0,
+                'rel': 0,
+                'showinfo': 0,
+                'modestbranding': 1
+            },
+            events: {
+                'onReady': onPlayerReady,
+                'onStateChange': onPlayerStateChange
+            }
         });
     };
 
+    function onPlayerReady(event) {
+        console.log("YouTube Player listo.");
+    }
+
     function onPlayerStateChange(event) {
-        if (activeEngine !== 'youtube') return;
-        if (event.data === YT.PlayerState.ENDED) playNext();
+        if (event.data === YT.PlayerState.ENDED) {
+            // Siguiente canción automáticamente
+            if (currentPlayingIndex < currentPlaylist.length - 1) {
+                playTrack(currentPlayingIndex + 1);
+            }
+        }
+        
         if (event.data === YT.PlayerState.PLAYING) {
-            iconPlay.style.display = 'none'; iconPause.style.display = 'block';
+            iconPlay.style.display = 'none';
+            iconPause.style.display = 'block';
             startProgressTimer();
         } else {
-            iconPlay.style.display = 'block'; iconPause.style.display = 'none';
+            iconPlay.style.display = 'block';
+            iconPause.style.display = 'none';
             stopProgressTimer();
         }
-    }
-
-    // Listeners para el audio normal (Segundo plano)
-    if (mainAudio) {
-        mainAudio.addEventListener('play', () => {
-            if (activeEngine !== 'audio') return;
-            iconPlay.style.display = 'none'; iconPause.style.display = 'block';
-            startProgressTimer();
-        });
-        mainAudio.addEventListener('pause', () => {
-            if (activeEngine !== 'audio') return;
-            iconPlay.style.display = 'block'; iconPause.style.display = 'none';
-            stopProgressTimer();
-        });
-        mainAudio.addEventListener('ended', () => {
-            if (activeEngine === 'audio') playNext();
-        });
-    }
-
-    function playNext() {
-        if (currentPlayingIndex < currentPlaylist.length - 1) playTrack(currentPlayingIndex + 1);
     }
 
     function startProgressTimer() {
         stopProgressTimer();
         progressTimer = setInterval(() => {
-            let current = 0, duration = 0;
-            if (activeEngine === 'audio') {
-                current = mainAudio.currentTime;
-                duration = mainAudio.duration;
-            } else if (ytPlayer && ytPlayer.getCurrentTime) {
-                current = ytPlayer.getCurrentTime();
-                duration = ytPlayer.getDuration();
-            }
-
-            if (duration > 0) {
-                const p = (current / duration) * 100;
-                progressSlider.style.background = `linear-gradient(to right, var(--primary) ${p}%, rgba(255,255,255,0.1) ${p}%)`;
-                progressSlider.value = current;
-                progressSlider.max = duration;
-                timeCurrent.textContent = formatTime(current);
-                timeTotal.textContent = formatTime(duration);
+            if (ytPlayer && ytPlayer.getCurrentTime) {
+                const currentTime = ytPlayer.getCurrentTime();
+                const duration = ytPlayer.getDuration();
+                if (duration > 0) {
+                    const p = (currentTime / duration) * 100;
+                    progressSlider.style.background = `linear-gradient(to right, var(--primary) ${p}%, rgba(255,255,255,0.1) ${p}%)`;
+                    progressSlider.value = currentTime;
+                    progressSlider.max = duration;
+                    timeCurrent.textContent = formatTime(currentTime);
+                    timeTotal.textContent = formatTime(duration);
+                }
             }
         }, 500);
     }
 
-    function stopProgressTimer() { if (progressTimer) clearInterval(progressTimer); }
-    // --- FIN DOBLE MOTOR ---
+    function stopProgressTimer() {
+        if (progressTimer) clearInterval(progressTimer);
+    }
+
+    // --- FIN NUEVO MOTOR ---
     const btnPlay       = document.getElementById('player-play');
     const btnNext       = document.getElementById('player-next');
     const btnPrev       = document.getElementById('player-prev');
@@ -1162,7 +1164,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPlayingIndex = index;
         const video = currentPlaylist[index];
 
-        playerTitle.textContent = video.title + ' (Conectando...)';
+        playerTitle.textContent = video.title + ' (Cargando...)';
         if (playerChannel) playerChannel.textContent = video.channel || '';
         if (playerThumb) {
             if (video.thumbnail) playerThumb.innerHTML = `<img src="${video.thumbnail}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
@@ -1173,54 +1175,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playerBar) playerBar.classList.remove('hidden');
 
         try {
-            if (mainAudio) mainAudio.pause();
-            if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
-
-            // --- EXTRACCIÓN DESDE EL CLIENTE USANDO INVIDIOUS (CORS Friendly) ---
-            const invidiousNodes = [
-                "https://inv.vern.cc",
-                "https://invidious.sethforprivacy.com",
-                "https://invidious.projectsegfau.lt",
-                "https://yewtu.be"
-            ];
-            
-            let audioUrl = null;
-            for (let node of invidiousNodes) {
-                try {
-                    const res = await fetch(`${node}/api/v1/videos/${video.id}`);
-                    const data = await res.json();
-                    const audio = data.adaptiveFormats.find(f => f.type.includes('audio'));
-                    if (audio && audio.url) {
-                        audioUrl = audio.url;
-                        break;
-                    }
-                } catch(e) { continue; }
-            }
-
-            if (audioUrl) {
-                activeEngine = 'audio';
-                mainAudio.src = audioUrl;
-                mainAudio.play().then(() => {
-                    playerTitle.textContent = video.title;
-                    updateMediaSession(video);
-                });
+            if (ytPlayer && ytPlayer.loadVideoById) {
+                ytPlayer.loadVideoById(video.id);
+                playerTitle.textContent = video.title;
+                if (window.addToHistory) window.addToHistory(video);
             } else {
-                activeEngine = 'youtube';
-                if (ytPlayer && ytPlayer.loadVideoById) ytPlayer.loadVideoById(video.id);
+                showNotification("El reproductor aún se está cargando, espera un segundo...", true);
             }
         } catch (err) {
-            activeEngine = 'youtube';
-            if (ytPlayer && ytPlayer.loadVideoById) ytPlayer.loadVideoById(video.id);
-        }
-    }
-
-    function updateMediaSession(video) {
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.metadata = new MediaMetadata({
-                title: video.title,
-                artist: video.channel || 'TuZona EC',
-                artwork: [{ src: video.thumbnail || '/static/favicon.png', sizes: '512x512', type: 'image/jpeg' }]
-            });
+            console.error("Fallo crítico:", err);
         }
     }
 
@@ -1233,13 +1196,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     btnPlay.addEventListener('click', () => {
-        if (activeEngine === 'audio') {
-            if (mainAudio.paused) mainAudio.play();
-            else mainAudio.pause();
-        } else if (ytPlayer && ytPlayer.getPlayerState) {
-            const state = ytPlayer.getPlayerState();
-            if (state === YT.PlayerState.PLAYING) ytPlayer.pauseVideo();
-            else ytPlayer.playVideo();
+        if (!ytPlayer || !ytPlayer.getPlayerState) return;
+        const state = ytPlayer.getPlayerState();
+        if (state === YT.PlayerState.PLAYING) {
+            ytPlayer.pauseVideo();
+        } else {
+            ytPlayer.playVideo();
         }
     });
 
@@ -1266,9 +1228,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     progressSlider.addEventListener('input', () => {
-        const val = progressSlider.value;
-        if (activeEngine === 'audio') mainAudio.currentTime = val;
-        else if (ytPlayer && ytPlayer.seekTo) ytPlayer.seekTo(val);
+        if (ytPlayer && ytPlayer.seekTo) {
+            ytPlayer.seekTo(progressSlider.value);
+        }
     });
 
     /* ── VOLUME CONTROL ── */
@@ -1278,16 +1240,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const iconVolMute = document.getElementById('icon-vol-mute');
 
     function updateVolUI() {
-        let vol = 0, muted = false;
-        if (activeEngine === 'audio') {
-            vol = mainAudio.volume * 100;
-            muted = mainAudio.muted;
-        } else if (ytPlayer && ytPlayer.getVolume) {
-            vol = ytPlayer.getVolume();
-            muted = ytPlayer.isMuted();
-        }
-
+        if (!ytPlayer || !ytPlayer.getVolume) return;
+        const vol = ytPlayer.getVolume();
+        const muted = ytPlayer.isMuted();
         const pct = muted ? 0 : vol;
+        
         if (volSlider) {
             volSlider.value = muted ? 0 : vol / 100;
             volSlider.style.background = `linear-gradient(to right, var(--primary) ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
@@ -1298,27 +1255,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (volSlider) {
         volSlider.addEventListener('input', () => {
-            const v = parseFloat(volSlider.value);
-            if (activeEngine === 'audio') {
-                mainAudio.volume = v;
-                if (mainAudio.muted && v > 0) mainAudio.muted = false;
-            } else if (ytPlayer && ytPlayer.setVolume) {
-                ytPlayer.setVolume(v * 100);
+            if (ytPlayer && ytPlayer.setVolume) {
+                const v = parseFloat(volSlider.value) * 100;
+                ytPlayer.setVolume(v);
                 if (ytPlayer.isMuted() && v > 0) ytPlayer.unMute();
+                updateVolUI();
             }
-            updateVolUI();
         });
     }
 
     if (volBtn) {
         volBtn.addEventListener('click', () => {
-            if (activeEngine === 'audio') {
-                mainAudio.muted = !mainAudio.muted;
-            } else if (ytPlayer && ytPlayer.isMuted) {
+            if (ytPlayer && ytPlayer.isMuted) {
                 if (ytPlayer.isMuted()) ytPlayer.unMute();
                 else ytPlayer.mute();
+                updateVolUI();
             }
-            updateVolUI();
         });
     }
 

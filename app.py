@@ -38,6 +38,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+CORS = None # Definido como None por defecto para evitar errores en Vercel
 if CORS:
     CORS(app, expose_headers=['Content-Disposition'])
 

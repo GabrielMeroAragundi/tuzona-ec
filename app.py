@@ -9,18 +9,13 @@ import time
 from io import BytesIO
 from datetime import datetime
 from flask import Flask, request, jsonify, send_file, render_template, Response
-try:
-    from flask_cors import CORS
-except ImportError:
-    CORS = None
-    print("Aviso: flask_cors no encontrado, continuando sin CORS")
+# Importaciones básicas
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer
 import secrets
 import base64
-# from captcha.image import ImageCaptcha  <-- Comentado para estabilidad en Vercel
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'tuzona-secret-key-2025')

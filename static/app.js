@@ -1026,37 +1026,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ ids: [videoId], format: fmt })
                 });
 
-                if (!response.ok) throw new Error("Error en el servidor");
-
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
+                const result = await response.json();
                 
-                // Intentar obtener el nombre real del archivo
-                let filename = `${videoId}.${fmt}`;
-                const disp = response.headers.get('Content-Disposition');
-                if (disp && disp.includes('filename')) {
-                    const m = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disp);
-                    if (m && m[1]) filename = m[1].replace(/['"]/g, '');
+                if (result.url) {
+                    // Abrir el link de descarga en una pestaña nueva/oculta
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = result.url;
+                    a.target = '_blank';
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => document.body.removeChild(a), 100);
+                } else if (result.error) {
+                    throw new Error(result.error);
                 }
-                
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(() => {
-                    URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                }, 100);
 
             } catch (error) {
                 console.error(`Fallo en ${videoId}:`, error);
-                showNotification(`Error al descargar: ${videoData ? videoData.title : videoId}`, true);
+                showNotification(`Error: ${error.message || 'No se pudo generar el link'}`, true);
             }
             
-            // Pequeña espera entre descargas para no saturar al navegador
-            await new Promise(r => setTimeout(r, 800));
+            // Pequeña espera entre peticiones
+            await new Promise(r => setTimeout(r, 1000));
         }
 
         showNotification('¡Todas las descargas han sido enviadas! ✅');

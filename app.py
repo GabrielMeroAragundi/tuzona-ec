@@ -388,130 +388,45 @@ def get_progress():
 @app.route('/api/download', methods=['POST'])
 def download_videos():
     if not current_user.is_authenticated:
-        return jsonify({'error': 'Debes iniciar sesión para descargar música.'}), 401
+        return jsonify({'error': 'Inicia sesión para descargar.'}), 401
     
     data = request.json
-    if not data or 'ids' not in data or not isinstance(data['ids'], list):
-        return jsonify({'error': 'Invalid request format'}), 400
-    
-    video_ids = data['ids']
-    session_id = data.get('session_id', 'default')
-    
+    video_ids = data.get('ids', [])
     if not video_ids:
-        return jsonify({'error': 'No videos selected'}), 400
+        return jsonify({'error': 'No hay videos seleccionados'}), 400
 
-    # Rastrear descargas
-    current_user.songs_downloaded += len(video_ids)
+    import requests
+    video_id = video_ids[0] # Por ahora descargamos de 1 en 1 para evitar timeouts
+
+    # API de Cobalt (Experta en descargas)
+    url_api = "https://api.cobalt.tools/api/json"
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "url": f"https://www.youtube.com/watch?v={video_id}",
+        "downloadMode": "audio",
+        "audioFormat": "mp3",
+        "audioBitrate": "320"
+    }
+
     try:
-        db.session.commit()
-    except:
-        db.session.rollback()
-
-    format_type = data.get('format', 'mp3')
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        if format_type == 'mp4':
-            ydl_opts = {
-                'format': 'bestvideo[ext=mp4]+bestaudio[m4a]/best[ext=mp4]/best',
-                'merge_output_format': 'mp4',
-                'ffmpeg_location': FFMPEG_PATH,
-                'outtmpl': os.path.join(temp_dir, '%(title)s.%(ext)s'),
-                'quiet': True,
-                'no_warnings': True,
-                'noprogress': True,
-                'extractor_args': {'youtube': ['player_client=mweb,web', 'player_skip=webpage,configs']},
-                'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
-                'nocheckcertificate': True,
-                'quiet': True,
-                'no_warnings': True
-            }
+        resp = requests.post(url_api, json=payload, headers=headers, timeout=8)
+        result = resp.json()
+        
+        if result.get('status') == 'stream' or result.get('status') == 'redirect':
+            download_url = result.get('url')
+            # Rastrear descarga en la DB
+            current_user.songs_downloaded += 1
+            db.session.commit()
+            return jsonify({'url': download_url})
         else:
-            ydl_opts = {
-                'format': 'bestaudio/best',
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '320',
-                }],
-                'ffmpeg_location': FFMPEG_PATH,
-                'outtmpl': os.path.join(temp_dir, '%(title)s.%(ext)s'),
-                'quiet': True,
-                'no_warnings': True,
-                'noprogress': False,
-                'extractor_args': {'youtube': ['player_client=mweb,web', 'player_skip=webpage,configs']},
-                'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
-                'nocheckcertificate': True,
-                'quiet': True,
-                'no_warnings': True
-            }
-
-        try:
-            total_videos = len(video_ids)
-            DOWNLOAD_PROGRESS[session_id] = {'status': 'starting', 'percent': '0.0%', 'current': 0, 'total': total_videos}
+            return jsonify({'error': 'El servicio de descarga está ocupado, intenta en un momento.'}), 503
             
-            for i, vid in enumerate(video_ids):
-                def my_hook(d):
-                    if d['status'] == 'downloading':
-                        percent_str = d.get('_percent_str', '0.0%').strip()
-                        percent_str = re.sub(r'\x1b[^m]*m', '', percent_str)
-                        DOWNLOAD_PROGRESS[session_id] = {
-                            'status': 'downloading',
-                            'current': i + 1,
-                            'total': total_videos,
-                            'percent': percent_str
-                        }
-
-                opts = ydl_opts.copy()
-                opts['progress_hooks'] = [my_hook]
-
-                try:
-                    with yt_dlp.YoutubeDL(opts) as ydl:
-                        ydl.download([f"https://www.youtube.com/watch?v={vid}"])
-                except Exception as video_err:
-                    print(f"Error procesando video {vid}: {video_err}")
-                    # Continue downloading remaining videos in batch even if one fails
-                    continue
-            
-            # Update status to packing
-            DOWNLOAD_PROGRESS[session_id] = {'status': 'packing', 'percent': '100%', 'current': total_videos, 'total': total_videos}
-
-            downloaded_files = [f for f in os.listdir(temp_dir) if f.endswith(('.mp3', '.mp4'))]
-
-            
-            if not downloaded_files:
-                return jsonify({'error': 'Failed to download any videos'}), 500
-
-            if len(downloaded_files) == 1:
-                # Retornar el archivo MP3 directamente
-                file_path = os.path.join(temp_dir, downloaded_files[0])
-                # Para evitar borrar el archivo antes de enviarlo, usamos un truco enviando el contenido en bytes
-                with open(file_path, 'rb') as f:
-                    file_data = BytesIO(f.read())
-                
-                return send_file(
-                    file_data,
-                    as_attachment=True,
-                    download_name=downloaded_files[0],
-                    mimetype='audio/mpeg'
-                )
-            else:
-                # Multiples archivos, enpaquetar en ZIP
-                zip_buffer = BytesIO()
-                with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                    for file in downloaded_files:
-                        file_path = os.path.join(temp_dir, file)
-                        zipf.write(file_path, arcname=file)
-                
-                zip_buffer.seek(0)
-                return send_file(
-                    zip_buffer,
-                    as_attachment=True,
-                    download_name='yt_music_download.zip',
-                    mimetype='application/zip'
-                )
-
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        print(f"Error en Cobalt: {e}")
+        return jsonify({'error': 'Error al generar link de descarga.'}), 500
 
 @app.route('/api/trending', methods=['GET'])
 def get_trending():

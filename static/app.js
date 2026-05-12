@@ -1222,16 +1222,18 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
 
-            // --- MOTOR DE BÚSQUEDA PARALELA ---
+            // TEMPORIZADOR DE SEGURIDAD (4 segundos)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 4000);
+
             const nodes = [
                 `https://api.allorigins.win/get?url=${encodeURIComponent('https://inv.tux.pizza/api/v1/videos/' + video.id)}`,
-                `https://api.allorigins.win/get?url=${encodeURIComponent('https://pipedapi.kavin.rocks/streams/' + video.id)}`,
-                `https://api.allorigins.win/get?url=${encodeURIComponent('https://invidious.sethforprivacy.com/api/v1/videos/' + video.id)}`
+                `https://api.allorigins.win/get?url=${encodeURIComponent('https://vid.puffyan.us/api/v1/videos/' + video.id)}`,
+                `https://api.allorigins.win/get?url=${encodeURIComponent('https://pipedapi.kavin.rocks/streams/' + video.id)}`
             ];
 
-            // Lanzar todas las búsquedas a la vez. El primero que responda gana.
             const streamUrl = await Promise.any(nodes.map(url => 
-                fetch(url).then(r => r.json()).then(data => {
+                fetch(url, { signal: controller.signal }).then(r => r.json()).then(data => {
                     const contents = JSON.parse(data.contents);
                     if (contents.adaptiveFormats) {
                         const audio = contents.adaptiveFormats.find(f => f.type.includes('audio'));
@@ -1240,9 +1242,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (contents.audioStreams) {
                         return contents.audioStreams.sort((a,b) => b.bitrate - a.bitrate)[0].url;
                     }
-                    throw new Error("No stream found");
+                    throw new Error("No found");
                 })
             )).catch(() => null);
+
+            clearTimeout(timeoutId);
 
             if (streamUrl) {
                 mainAudio.src = streamUrl;

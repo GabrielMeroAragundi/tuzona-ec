@@ -1217,7 +1217,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPlayingIndex = index;
         const video = currentPlaylist[index];
 
-        playerTitle.textContent = video.title + ' (Iniciando...)';
+        playerTitle.textContent = video.title + ' (Conectando...)';
         if (playerChannel) playerChannel.textContent = video.channel || '';
         if (playerThumb) {
             if (video.thumbnail) playerThumb.innerHTML = `<img src="${video.thumbnail}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
@@ -1227,52 +1227,42 @@ document.addEventListener('DOMContentLoaded', () => {
         const playerBar = document.getElementById('player-bar');
         if (playerBar) playerBar.classList.remove('hidden');
 
-        // PLAN A: Preparar YouTube de inmediato (es lo más fiable)
-        activeEngine = 'youtube';
-        if (ytPlayer && ytPlayer.loadVideoById) {
-            ytPlayer.loadVideoById({ videoId: video.id, suggestedQuality: 'small' });
-        }
+        // DETECCIÓN DE DISPOSITIVO MÓVIL
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-        // PLAN B: Intentar buscar audio directo para segundo plano (solo si es rápido)
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 2500); // Solo damos 2.5 segundos
-
-            const nodes = [
-                `https://api.allorigins.win/get?url=${encodeURIComponent('https://inv.tux.pizza/api/v1/videos/' + video.id)}`,
-                `https://api.allorigins.win/get?url=${encodeURIComponent('https://pipedapi.kavin.rocks/streams/' + video.id)}`
-            ];
-
-            const streamUrl = await Promise.any(nodes.map(url => 
-                fetch(url, { signal: controller.signal }).then(r => r.json()).then(data => {
-                    const contents = JSON.parse(data.contents);
-                    if (contents.adaptiveFormats) return contents.adaptiveFormats.find(f => f.type.includes('audio')).url;
-                    if (contents.audioStreams) return contents.audioStreams.sort((a,b) => b.bitrate - a.bitrate)[0].url;
-                    throw new Error();
-                })
-            )).catch(() => null);
-
-            clearTimeout(timeoutId);
-
-            if (streamUrl) {
-                // Si encontramos el audio rápido, apagamos YouTube y usamos el audio directo
+        if (isMobile) {
+            // --- MODO MÓVIL (AUDIO DIRECTO PARA SEGUNDO PLANO) ---
+            activeEngine = 'audio';
+            try {
                 if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
-                activeEngine = 'audio';
-                mainAudio.src = streamUrl;
-                mainAudio.play().then(() => {
-                    playerTitle.textContent = video.title;
-                    setupMediaSession(video);
-                    if (window.addToHistory) window.addToHistory(video);
-                }).catch(() => useYTFallback(video));
-            } else {
-                // Si no se encontró a tiempo, YouTube ya está cargando/reproduciendo
+                
+                // Pedir el link de audio a nuestro propio servidor (infalible)
+                const resp = await fetch(`/api/stream_url/${video.id}`);
+                const data = await resp.json();
+
+                if (data.url) {
+                    mainAudio.src = data.url;
+                    mainAudio.play().then(() => {
+                        playerTitle.textContent = video.title;
+                        setupMediaSession(video);
+                        if (window.addToHistory) window.addToHistory(video);
+                    }).catch(() => useYTFallback(video));
+                } else {
+                    useYTFallback(video);
+                }
+            } catch (err) {
+                useYTFallback(video);
+            }
+        } else {
+            // --- MODO PC (YOUTUBE OFICIAL) ---
+            activeEngine = 'youtube';
+            if (mainAudio && !mainAudio.paused) mainAudio.pause();
+            if (ytPlayer && ytPlayer.loadVideoById) {
+                ytPlayer.loadVideoById({ videoId: video.id, suggestedQuality: 'small' });
                 playerTitle.textContent = video.title;
                 setupMediaSession(video);
                 if (window.addToHistory) window.addToHistory(video);
             }
-        } catch (err) {
-            // Cualquier error, nos quedamos con YouTube que ya arrancó arriba
-            playerTitle.textContent = video.title;
         }
     }
 

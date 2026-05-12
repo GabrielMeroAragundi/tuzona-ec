@@ -1098,22 +1098,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${m}:${sec < 10 ? '0' : ''}${sec}`;
     }
 
-    async function playTrack(index, sourceIndexInput = 0) {
-        const sourceIndex = parseInt(sourceIndexInput);
+    async function playTrack(index) {
         if (index < 0 || index >= currentPlaylist.length) return;
         currentPlayingIndex = index;
         const video = currentPlaylist[index];
-        const sources = ['0', '1', '2']; 
 
-        if (sourceIndex === 0) {
-            playerTitle.textContent = video.title + ' (Conectando...)';
-            if (playerChannel) playerChannel.textContent = video.channel || '';
-            if (playerThumb) {
-                if (video.thumbnail) playerThumb.innerHTML = `<img src="${video.thumbnail}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
-                else playerThumb.textContent = '🎵';
-            }
-        } else {
-            playerTitle.textContent = video.title + ` (Servidor ${sourceIndex + 1}/3...)`;
+        playerTitle.textContent = video.title + ' (Cargando...)';
+        if (playerChannel) playerChannel.textContent = video.channel || '';
+        if (playerThumb) {
+            if (video.thumbnail) playerThumb.innerHTML = `<img src="${video.thumbnail}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
+            else playerThumb.textContent = '🎵';
         }
         
         iconPlay.style.display = 'none';
@@ -1123,56 +1117,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playerBar) playerBar.classList.remove('hidden');
 
         try {
-            if (sourceIndex === 0 && !mainAudio.paused) mainAudio.pause();
+            if (!mainAudio.paused) mainAudio.pause();
 
-            // Intentar con la fuente actual
-            const urlFinal = `/api/stream?id=${video.id}&source=${sourceIndex}`;
-            mainAudio.src = urlFinal;
+            mainAudio.src = `/api/stream?id=${video.id}`;
             mainAudio.load(); 
             
-            setTimeout(() => {
-                mainAudio.play().then(() => {
-                    playerTitle.textContent = video.title;
-                    iconPlay.style.display = 'none';
-                    iconPause.style.display = 'block';
-                    if (window.addToHistory) window.addToHistory(video);
-                }).catch(async (e) => {
-                    console.error(`Error en fuente ${sourceIndex}:`, e);
-                    
-                    // --- PLAN B: EXTRACCIÓN DIRECTA (IP USUARIO + PROXY ESTABLE) ---
-                    if (parseInt(sourceIndex) === 0) {
-                        console.log("Intentando extracción directa con IP del usuario...");
-                        try {
-                            const targetUrl = `https://yt-api.com/api/video/info?id=${video.id}`;
-                            const res = await fetch(`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(targetUrl)}`);
-                            const data = await res.json();
-                            const audio = data.data?.adaptiveFormats?.find(f => f.type?.includes('audio'));
-                            if (audio && audio.url) {
-                                console.log("¡Éxito con extracción directa!");
-                                mainAudio.src = audio.url;
-                                mainAudio.play();
-                                playerTitle.textContent = video.title;
-                                return;
-                            }
-                        } catch (clientErr) {
-                            console.error("Fallo en Plan B:", clientErr);
-                        }
-                    }
-
-                    const nextSource = parseInt(sourceIndex) + 1;
-                    if (nextSource < sources.length) {
-                        playTrack(index, nextSource);
-                    } else {
-                        playerTitle.textContent = video.title + ' (Error: Prueba otro servidor)';
-                        iconPlay.style.display = 'block';
-                        iconPause.style.display = 'none';
-                        showNotification("Fallo en todos los servidores. Intenta con otra canción.", true);
-                    }
-                });
-            }, 200);
+            mainAudio.play().then(() => {
+                playerTitle.textContent = video.title;
+                if (window.addToHistory) window.addToHistory(video);
+            }).catch((e) => {
+                console.error("Error en reproducción:", e);
+                playerTitle.textContent = video.title + ' (Error de conexión)';
+                showNotification("No se pudo conectar con el servidor de música.", true);
+            });
 
         } catch (err) {
-            if (sourceIndex < sources.length - 1) playTrack(index, sourceIndex + 1);
+            console.error("Fallo crítico:", err);
         }
     }
 

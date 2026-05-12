@@ -324,69 +324,57 @@ def stream_audio():
     else:
         url = None
 
-    import httpx
+    # Limpiar caché si es vieja
+    now = time.time()
+    if video_id in STREAM_CACHE:
+        cache_data = STREAM_CACHE[video_id]
+        if now - cache_data['timestamp'] < 3600:
+            return redirect(cache_data['url'])
+
     import requests
     from pytubefix import YouTube
-    source_type = str(request.args.get('source', '0'))[0] # Tomar solo el primer carácter por seguridad
-    
-    try:
-        if not url:
-            if source_type == '0':
-                # Fuente 0: YouTube Music / VR
-                try:
-                    yt = YouTube(f"https://music.youtube.com/watch?v={video_id}", client='YTMUSIC')
-                    url = yt.streams.filter(only_audio=True).first().url
-                except:
-                    try:
-                        yt = YouTube(f"https://www.youtube.com/watch?v={video_id}", client='ANDROID_VR')
-                        url = yt.streams.filter(only_audio=True).first().url
-                    except: pass
 
-            elif source_type == '1':
-                # Fuente 1: API Externa
-                try:
-                    api_resp = requests.get(f"https://yt-api.com/api/video/info?id={video_id}", timeout=5)
-                    if api_resp.status_code == 200:
-                        formats = api_resp.json().get('data', {}).get('adaptiveFormats', [])
+    # Orden de intentos internos (Silenciosos)
+    def try_extract():
+        # 1. YouTube Music (Modo más estable)
+        try:
+            yt = YouTube(f"https://music.youtube.com/watch?v={video_id}", client='YTMUSIC')
+            u = yt.streams.filter(only_audio=True).first().url
+            if u: return u
+        except: pass
+
+        # 2. Piped & Invidious (Nodos rotativos)
+        nodes = [
+            f"https://pipedapi.kavin.rocks/streams/{video_id}",
+            f"https://api.allorigins.win/raw?url=https://yt-api.com/api/video/info?id={video_id}",
+            f"https://invidious.sethforprivacy.com/api/v1/videos/{video_id}"
+        ]
+        for node in nodes:
+            try:
+                resp = requests.get(node, timeout=3)
+                if resp.status_code == 200:
+                    d = resp.json()
+                    # Caso Piped
+                    if 'audioStreams' in d: return d['audioStreams'][0]['url']
+                    # Caso yt-api (vía allorigins)
+                    if 'data' in d:
+                        formats = d['data'].get('adaptiveFormats', [])
                         audio = [f for f in formats if 'audio' in f.get('type', '')]
-                        if audio: url = audio[0].get('url')
-                except: pass
+                        if audio: return audio[0]['url']
+                    # Caso Invidious
+                    if 'adaptiveFormats' in d:
+                        audio = [f for f in d['adaptiveFormats'] if 'audio' in f.get('type', '')]
+                        if audio: return audio[0]['url']
+            except: continue
+        return None
 
-            elif source_type == '2':
-                # Fuente 2: Piped / Invidious (Instancias rotativas)
-                nodes = [
-                    "https://pipedapi.kavin.rocks/streams/",
-                    "https://pipedapi.lunar.icu/streams/",
-                    "https://invidious.sethforprivacy.com/api/v1/videos/",
-                    "https://invidious.snopyta.org/api/v1/videos/"
-                ]
-                for node in nodes:
-                    try:
-                        resp = requests.get(f"{node}{video_id}", timeout=4)
-                        if resp.status_code == 200:
-                            data = resp.json()
-                            # Caso Piped
-                            if 'audioStreams' in data:
-                                url = data['audioStreams'][0].get('url')
-                                break
-                            # Caso Invidious
-                            elif 'adaptiveFormats' in data:
-                                audio = [f for f in data['adaptiveFormats'] if 'audio' in f.get('type', '')]
-                                if audio:
-                                    url = audio[0].get('url')
-                                    break
-                    except: continue
-
-            if not url:
-                return jsonify({'error': 'Fuente no disponible'}), 404
-            
-            STREAM_CACHE[video_id] = {'url': url, 'timestamp': now}
-
-        from flask import redirect
-        return redirect(url)
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    final_url = try_extract()
+    
+    if final_url:
+        STREAM_CACHE[video_id] = {'url': final_url, 'timestamp': now}
+        return redirect(final_url)
+    
+    return jsonify({'error': 'No disponible'}), 404
 
 @app.route('/api/progress', methods=['GET'])
 def get_progress():

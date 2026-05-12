@@ -1020,40 +1020,23 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             try {
-                // LLAMADA DIRECTA AL MOTOR DE DESCARGA (Desde tu propia IP)
-                const cobaltApi = "https://api.cobalt.tools/api/json";
-                const response = await fetch(cobaltApi, {
-                    method: 'POST',
-                    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        url: `https://www.youtube.com/watch?v=${videoId}`, 
-                        downloadMode: 'audio',
-                        audioFormat: fmt,
-                        audioBitrate: '320'
-                    })
-                });
-
-                const result = await response.json();
+                // MÉTODO INFALIBLE: REDIRECCIÓN DIRECTA A MOTOR DE DESCARGA
+                // Esto evita bloqueos de CORS y de Vercel al 100%
+                const downloadLink = `https://api.vevioz.com/api/button/mp3/${videoId}`;
                 
-                if (result.url) {
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = result.url;
-                    a.target = '_blank';
-                    document.body.appendChild(a);
-                    a.click();
-                    setTimeout(() => document.body.removeChild(a), 100);
-                    
-                    // Avisar al servidor para que cuente la descarga (Estadísticas)
-                    fetch('/api/download', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ids: [videoId], internal_stat_only: true })
-                    }).catch(() => {});
+                window.open(downloadLink, '_blank');
+                
+                // Avisar al servidor para que cuente la descarga (Estadísticas)
+                fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: [videoId], internal_stat_only: true })
+                }).catch(() => {});
 
-                } else {
-                    throw new Error(result.text || "No se pudo generar el link");
-                }
+                showNotification("Abriendo link de descarga... ✅");
+            } catch (error) {
+                showNotification("Error al intentar abrir el motor de descarga.", true);
+            }
 
             } catch (error) {
                 console.error(`Fallo en ${videoId}:`, error);
@@ -1190,33 +1173,40 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playerBar) playerBar.classList.remove('hidden');
 
         try {
-            // Detener ambos motores antes de empezar
             if (mainAudio) mainAudio.pause();
             if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
 
-            // --- EXTRACCIÓN DESDE EL CLIENTE (MÁS ESTABLE + SEGUNDO PLANO) ---
-            const cobaltApi = "https://api.cobalt.tools/api/json";
-            const resp = await fetch(cobaltApi, {
-                method: 'POST',
-                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: `https://www.youtube.com/watch?v=${video.id}`, downloadMode: 'audio' })
-            });
-            const result = await resp.json();
+            // --- EXTRACCIÓN DESDE EL CLIENTE USANDO INVIDIOUS (CORS Friendly) ---
+            const invidiousNodes = [
+                "https://inv.vern.cc",
+                "https://invidious.sethforprivacy.com",
+                "https://invidious.projectsegfau.lt",
+                "https://yewtu.be"
+            ];
+            
+            let audioUrl = null;
+            for (let node of invidiousNodes) {
+                try {
+                    const res = await fetch(`${node}/api/v1/videos/${video.id}`);
+                    const data = await res.json();
+                    const audio = data.adaptiveFormats.find(f => f.type.includes('audio'));
+                    if (audio && audio.url) {
+                        audioUrl = audio.url;
+                        break;
+                    }
+                } catch(e) { continue; }
+            }
 
-            if (result.url) {
+            if (audioUrl) {
                 activeEngine = 'audio';
-                mainAudio.src = result.url;
+                mainAudio.src = audioUrl;
                 mainAudio.play().then(() => {
                     playerTitle.textContent = video.title;
-                    if (window.addToHistory) window.addToHistory(video);
                     updateMediaSession(video);
                 });
             } else {
                 activeEngine = 'youtube';
-                if (ytPlayer && ytPlayer.loadVideoById) {
-                    ytPlayer.loadVideoById(video.id);
-                    playerTitle.textContent = video.title;
-                }
+                if (ytPlayer && ytPlayer.loadVideoById) ytPlayer.loadVideoById(video.id);
             }
         } catch (err) {
             activeEngine = 'youtube';

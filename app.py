@@ -142,7 +142,8 @@ except Exception as e:
     print(f"Error cargando caché de tendencias: {e}")
 
 # Obtener ruta a ffmpeg desde imageio_ffmpeg
-FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
+# FFMPEG ya no es necesario con el sistema de redirección
+FFMPEG_PATH = None
 
 
 @app.route('/')

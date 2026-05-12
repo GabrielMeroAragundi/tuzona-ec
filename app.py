@@ -325,8 +325,8 @@ def stream_audio():
             try:
                 # Intento con OAuth (requiere vinculación manual en los logs la primera vez)
                 yt_url = f"https://www.youtube.com/watch?v={video_id}"
-                # use_oauth=True lanzará el código de vinculación en los logs de Render
-                yt = YouTube(yt_url, use_oauth=True, allow_oauth_cache=True)
+                # Forzar cliente de TV (suele saltarse el error 429 en nubes)
+                yt = YouTube(yt_url, use_oauth=True, allow_oauth_cache=True, client='TV_EMBEDDED')
                 stream = yt.streams.filter(only_audio=True).first()
                 url = stream.url
                 print(f"URL extraída con OAuth para {video_id}")

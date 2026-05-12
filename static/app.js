@@ -1182,24 +1182,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- MOTOR DE PERSISTENCIA (WATCHDOG) ---
-    // Este sistema evita que el móvil duerma el proceso de YouTube
     let watchdogTimer = null;
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
-            // Cuando la web se oculta, empezamos a vigilar cada 500ms
+            if (watchdogTimer) clearInterval(watchdogTimer);
             watchdogTimer = setInterval(() => {
-                if (ytPlayer && ytPlayer.getPlayerState) {
+                if (ytPlayer && ytPlayer.getPlayerState && activeEngine === 'youtube') {
                     const state = ytPlayer.getPlayerState();
-                    // Si YouTube se pausa solo por estar de fondo, forzamos el Play
                     if (state === YT.PlayerState.PAUSED) {
                         ytPlayer.playVideo();
-                        // Mantenemos el audio silencioso vivo para que el canal no se cierre
-                        if (mainAudio.paused) mainAudio.play().catch(() => {});
                     }
                 }
-            }, 500);
+            }, 1000);
         } else {
             if (watchdogTimer) clearInterval(watchdogTimer);
+            watchdogTimer = null;
         }
     });
 
@@ -1248,8 +1245,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 playerTitle.textContent = video.title;
                 setupMediaSession(video);
                 if (window.addToHistory) window.addToHistory(video);
-            } else {
-                setTimeout(() => playTrack(index), 1000);
             }
         } catch (err) {
             console.error("Error:", err);

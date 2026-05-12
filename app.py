@@ -351,8 +351,8 @@ def stream_audio():
                         except: continue
             except Exception as e_final:
                 print(f"Error CRITICO en extracción: {str(e_final)}")
-                import traceback
-                traceback.print_exc()
+                # Si falló todo, intentamos una última búsqueda de emergencia
+                print("Intentando búsqueda de URL cruda como último recurso...")
             
             if not url:
                 return jsonify({'error': 'Stream no disponible'}), 404
@@ -844,7 +844,13 @@ def verify_email(token):
 
 @app.route('/api/login', methods=['GET', 'POST'])
 def login():
-    data = request.json
+    if request.method == 'GET':
+        return jsonify({'error': 'Usa POST para loguear'}), 405
+    
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'error': 'Datos JSON requeridos'}), 400
+        
     username = data.get('username')
     password = data.get('password')
     

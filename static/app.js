@@ -1229,16 +1229,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playerBar) playerBar.classList.remove('hidden');
 
         try {
+            if (!video || !video.id) {
+                console.error("ID de video no encontrado");
+                return;
+            }
+
             if (ytPlayer && ytPlayer.loadVideoById) {
-                ytPlayer.loadVideoById(video.id);
+                ytPlayer.loadVideoById({
+                    videoId: video.id,
+                    suggestedQuality: 'small'
+                });
                 playerTitle.textContent = video.title;
-                setupMediaSession(video);
+                if (typeof setupMediaSession === 'function') setupMediaSession(video);
                 if (window.addToHistory) window.addToHistory(video);
             } else {
-                showNotification("El reproductor aún se está cargando, espera un segundo...", true);
+                console.log("Esperando a que el motor de YouTube esté listo...");
+                setTimeout(() => playTrack(index), 1000);
             }
         } catch (err) {
-            console.error("Fallo crítico:", err);
+            console.error("Error al cargar canción:", err);
         }
     }
 

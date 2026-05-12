@@ -325,45 +325,50 @@ def stream_audio():
         url = None
 
     import httpx
+    import requests
     from pytubefix import YouTube
     source_type = request.args.get('source', '0') # 0: VR, 1: External, 2: Piped
     
     try:
         if not url:
             if source_type == '0':
-                # Fuente 1: Android VR
+                # Fuente 0: Android VR (pytubefix)
                 try:
-                    from pytubefix import YouTube
                     yt = YouTube(f"https://www.youtube.com/watch?v={video_id}", client='ANDROID_VR')
                     url = yt.streams.filter(only_audio=True).first().url
-                    print(f"Fuente VR exitosa para {video_id}")
-                except: pass
+                except Exception as e:
+                    print(f"Error VR: {e}")
 
-            if not url or source_type == '1':
-                # Fuente 2: API Externa (Respaldo)
+            elif source_type == '1':
+                # Fuente 1: API Externa (yt-api.com)
                 try:
-                    import requests
-                    api_resp = requests.get(f"https://yt-api.com/api/video/info?id={video_id}", timeout=10)
+                    api_resp = requests.get(f"https://yt-api.com/api/video/info?id={video_id}", timeout=5)
                     if api_resp.status_code == 200:
                         formats = api_resp.json().get('data', {}).get('adaptiveFormats', [])
                         audio = [f for f in formats if 'audio' in f.get('type', '')]
                         if audio: url = audio[0].get('url')
-                        print(f"Fuente Externa exitosa para {video_id}")
-                except: pass
+                except Exception as e:
+                    print(f"Error Externa: {e}")
 
-            if not url or source_type == '2':
-                # Fuente 3: Piped (Último recurso)
-                try:
-                    import requests
-                    piped_url = f"https://pipedapi.kavin.rocks/streams/{video_id}"
-                    resp_p = requests.get(piped_url, timeout=10)
-                    if resp_p.status_code == 200:
-                        url = resp_p.json().get('audioStreams', [{}])[0].get('url')
-                        print(f"Fuente Piped exitosa para {video_id}")
-                except: pass
+            elif source_type == '2':
+                # Fuente 2: Piped API (Instancias rotativas)
+                piped_instances = [
+                    "https://pipedapi.kavin.rocks",
+                    "https://pipedapi.lunar.icu",
+                    "https://api-piped.mha.fi"
+                ]
+                for instance in piped_instances:
+                    try:
+                        resp_p = requests.get(f"{instance}/streams/{video_id}", timeout=4)
+                        if resp_p.status_code == 200:
+                            streams = resp_p.json().get('audioStreams', [])
+                            if streams:
+                                url = streams[0].get('url')
+                                break
+                    except: continue
 
             if not url:
-                return jsonify({'error': 'No disponible en ninguna fuente'}), 404
+                return jsonify({'error': 'Fuente no disponible'}), 404
             
             STREAM_CACHE[video_id] = {'url': url, 'timestamp': now}
 
@@ -371,7 +376,6 @@ def stream_audio():
         return redirect(url)
 
     except Exception as e:
-        print(f"Error en stream {video_id} (Fuente {source_type}): {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/progress', methods=['GET'])

@@ -1193,7 +1193,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPlayingIndex = index;
         const video = currentPlaylist[index];
 
-        playerTitle.textContent = video.title + ' (Cargando...)';
+        playerTitle.textContent = video.title + ' (Conectando...)';
         if (playerChannel) playerChannel.textContent = video.channel || '';
         if (playerThumb) {
             if (video.thumbnail) playerThumb.innerHTML = `<img src="${video.thumbnail}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
@@ -1203,39 +1203,47 @@ document.addEventListener('DOMContentLoaded', () => {
         const playerBar = document.getElementById('player-bar');
         if (playerBar) playerBar.classList.remove('hidden');
 
+        // --- ACTIVACIÓN INSTANTÁNEA (NO PAUSAR) ---
+        activeEngine = 'audio';
+        mainAudio.src = SILENT_MP3;
+        mainAudio.play().catch(() => {}); 
+
         try {
-            if (mainAudio) mainAudio.pause();
             if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
 
-            // --- EXTRACCIÓN POR PROXY (PARA SEGUNDO PLANO EN MÓVIL) ---
-            playerTitle.textContent = video.title + ' (Buscando señal...)';
+            // Lista de nodos para buscar el audio
+            const nodes = [
+                "https://pipedapi.kavin.rocks/streams/",
+                "https://api-piped.mha.fi/streams/",
+                "https://pipedapi.lunar.icu/streams/"
+            ];
             
-            // Usamos Piped a través de un Proxy para saltar el bloqueo de seguridad (CORS)
-            const proxyUrl = "https://api.allorigins.win/get?url=";
-            const targetUrl = encodeURIComponent(`https://pipedapi.kavin.rocks/streams/${video.id}`);
-            
-            const resp = await fetch(proxyUrl + targetUrl);
-            const data = await resp.json();
-            const pipedData = JSON.parse(data.contents);
+            let streamUrl = null;
+            for (let node of nodes) {
+                try {
+                    const proxyUrl = "https://api.allorigins.win/get?url=";
+                    const targetUrl = encodeURIComponent(node + video.id);
+                    const resp = await fetch(proxyUrl + targetUrl);
+                    const data = await resp.json();
+                    const pipedData = JSON.parse(data.contents);
+                    if (pipedData.audioStreams && pipedData.audioStreams.length > 0) {
+                        streamUrl = pipedData.audioStreams.sort((a,b) => b.bitrate - a.bitrate)[0].url;
+                        break;
+                    }
+                } catch(e) { continue; }
+            }
 
-            if (pipedData && pipedData.audioStreams && pipedData.audioStreams.length > 0) {
-                const stream = pipedData.audioStreams.sort((a,b) => b.bitrate - a.bitrate)[0];
-                
-                activeEngine = 'audio';
-                mainAudio.src = stream.url;
+            if (streamUrl) {
+                mainAudio.src = streamUrl;
                 mainAudio.play().then(() => {
                     playerTitle.textContent = video.title;
                     if (window.addToHistory) window.addToHistory(video);
                     setupMediaSession(video);
-                }).catch(e => {
-                    console.log("Audio play failed, fallback to YT:", e);
-                    useYTFallback(video);
-                });
+                }).catch(e => useYTFallback(video));
             } else {
                 useYTFallback(video);
             }
         } catch (err) {
-            console.error("Fallo extracción Proxy:", err);
             useYTFallback(video);
         }
     }

@@ -1203,27 +1203,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const playerBar = document.getElementById('player-bar');
         if (playerBar) playerBar.classList.remove('hidden');
 
-        // --- ACTIVACIÓN INSTANTÁNEA (NO PAUSAR) ---
+        // --- ACTIVACIÓN INSTANTÁNEA ---
         activeEngine = 'audio';
-        mainAudio.src = SILENT_MP3;
+        // Silencio más compatible (1 seg)
+        mainAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP8A/wD/";
         mainAudio.play().catch(() => {}); 
 
         try {
             if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
 
-            // Lista de nodos para buscar el audio
             const nodes = [
                 "https://pipedapi.kavin.rocks/streams/",
-                "https://api-piped.mha.fi/streams/",
-                "https://pipedapi.lunar.icu/streams/"
+                "https://api.piped.mha.fi/streams/"
             ];
             
             let streamUrl = null;
+            // Timeout de seguridad: Si en 5s no hay link, abortamos al Plan B
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
             for (let node of nodes) {
                 try {
                     const proxyUrl = "https://api.allorigins.win/get?url=";
                     const targetUrl = encodeURIComponent(node + video.id);
-                    const resp = await fetch(proxyUrl + targetUrl);
+                    const resp = await fetch(proxyUrl + targetUrl, { signal: controller.signal });
                     const data = await resp.json();
                     const pipedData = JSON.parse(data.contents);
                     if (pipedData.audioStreams && pipedData.audioStreams.length > 0) {
@@ -1232,6 +1235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 } catch(e) { continue; }
             }
+            clearTimeout(timeoutId);
 
             if (streamUrl) {
                 mainAudio.src = streamUrl;
@@ -1239,7 +1243,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     playerTitle.textContent = video.title;
                     if (window.addToHistory) window.addToHistory(video);
                     setupMediaSession(video);
-                }).catch(e => useYTFallback(video));
+                }).catch(() => useYTFallback(video));
             } else {
                 useYTFallback(video);
             }

@@ -323,23 +323,20 @@ def stream_audio():
     try:
         if not url:
             try:
-                # Intento primario con pytubefix (más resistente en la nube)
+                # Intento con OAuth (requiere vinculación manual en los logs la primera vez)
                 yt_url = f"https://www.youtube.com/watch?v={video_id}"
-                yt = YouTube(yt_url, use_oauth=False, allow_oauth_cache=False)
+                # use_oauth=True lanzará el código de vinculación en los logs de Render
+                yt = YouTube(yt_url, use_oauth=True, allow_oauth_cache=True)
                 stream = yt.streams.filter(only_audio=True).first()
                 url = stream.url
-                print(f"URL extraída con pytubefix para {video_id}")
+                print(f"URL extraída con OAuth para {video_id}")
             except Exception as e_pytube:
-                print(f"Pytubefix falló, intentando yt-dlp: {e_pytube}")
+                print(f"OAuth/Pytubefix falló: {e_pytube}")
+                # Fallback a yt-dlp por si acaso
                 ydl_opts = {
                     'format': 'bestaudio/best',
                     'quiet': True,
-                    'extract_flat': False,
-                    'force_generic_extractor': False,
-                    'extractor_args': {'youtube': ['player_client=mweb,web', 'player_skip=webpage,configs']},
-                    'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
-                    'nocheckcertificate': True,
-                    'no_warnings': True
+                    'nocheckcertificate': True
                 }
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)

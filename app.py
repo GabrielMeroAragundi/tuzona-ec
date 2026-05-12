@@ -14,8 +14,6 @@ try:
 except ImportError:
     CORS = None
     print("Aviso: flask_cors no encontrado, continuando sin CORS")
-import yt_dlp
-import imageio_ffmpeg
 from youtubesearchpython import VideosSearch, ChannelsSearch, PlaylistsSearch, Search
 import httpx
 from flask_sqlalchemy import SQLAlchemy

@@ -21,6 +21,7 @@ from itsdangerous import URLSafeTimedSerializer
 import secrets
 import base64
 from captcha.image import ImageCaptcha
+from pytubefix import YouTube
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'tuzona-secret-key-2025')
@@ -321,25 +322,34 @@ def stream_audio():
 
     try:
         if not url:
-            ydl_opts = {
-                'format': 'bestaudio/best',
-                'quiet': True,
-                'extract_flat': False,
-                'force_generic_extractor': False,
-                'extractor_args': {'youtube': ['player_client=mweb,web', 'player_skip=webpage,configs']},
-                'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
-                'nocheckcertificate': True,
-                'quiet': True,
-                'no_warnings': True
-            }
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
-                url = info.get('url')
-                if not url:
-                    return jsonify({'error': 'Stream no disponible'}), 404
-                
-                # Update cache
-                STREAM_CACHE[video_id] = {'url': url, 'timestamp': now}
+            try:
+                # Intento primario con pytubefix (más resistente en la nube)
+                yt_url = f"https://www.youtube.com/watch?v={video_id}"
+                yt = YouTube(yt_url, use_oauth=False, allow_oauth_cache=False)
+                stream = yt.streams.filter(only_audio=True).first()
+                url = stream.url
+                print(f"URL extraída con pytubefix para {video_id}")
+            except Exception as e_pytube:
+                print(f"Pytubefix falló, intentando yt-dlp: {e_pytube}")
+                ydl_opts = {
+                    'format': 'bestaudio/best',
+                    'quiet': True,
+                    'extract_flat': False,
+                    'force_generic_extractor': False,
+                    'extractor_args': {'youtube': ['player_client=mweb,web', 'player_skip=webpage,configs']},
+                    'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
+                    'nocheckcertificate': True,
+                    'no_warnings': True
+                }
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+                    url = info.get('url')
+            
+            if not url:
+                return jsonify({'error': 'Stream no disponible'}), 404
+            
+            # Update cache
+            STREAM_CACHE[video_id] = {'url': url, 'timestamp': now}
 
         headers = {}
         range_header = request.headers.get('Range')

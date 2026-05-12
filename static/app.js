@@ -1217,7 +1217,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPlayingIndex = index;
         const video = currentPlaylist[index];
 
-        playerTitle.textContent = video.title + ' (Conectando...)';
+        playerTitle.textContent = video.title + ' (Cargando...)';
         if (playerChannel) playerChannel.textContent = video.channel || '';
         if (playerThumb) {
             if (video.thumbnail) playerThumb.innerHTML = `<img src="${video.thumbnail}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
@@ -1227,57 +1227,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const playerBar = document.getElementById('player-bar');
         if (playerBar) playerBar.classList.remove('hidden');
 
-        // 1. ACTIVACIÓN INSTANTÁNEA (Requerido para que el móvil no bloquee el sonido después)
-        if (mainAudio) {
-            mainAudio.src = SILENT_MP3;
-            mainAudio.play().catch(() => {});
-        }
-
         // ACTIVAR BLOQUEO DE SUSPENSIÓN
         requestWakeLock();
 
-        // DETECCIÓN DE DISPOSITIVO MÓVIL
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-        if (isMobile) {
-            // --- MODO MÓVIL ---
-            activeEngine = 'audio';
-            try {
-                if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
-                
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-                const resp = await fetch(`/api/stream_url/${video.id}`, { signal: controller.signal });
-                const data = await resp.json();
-                clearTimeout(timeoutId);
-
-                if (data.url) {
-                    mainAudio.src = data.url;
-                    mainAudio.play().then(() => {
-                        playerTitle.textContent = video.title;
-                        setupMediaSession(video);
-                        if (window.addToHistory) window.addToHistory(video);
-                    }).catch(() => {
-                        console.log("Fallo al reproducir audio directo, usando YouTube");
-                        useYTFallback(video);
-                    });
-                } else {
-                    useYTFallback(video);
-                }
-            } catch (err) {
-                useYTFallback(video);
-            }
-        } else {
-            // --- MODO PC ---
-            activeEngine = 'youtube';
-            if (mainAudio && !mainAudio.paused) mainAudio.pause();
+        // MOTOR OFICIAL DE YOUTUBE (Estabilidad Total)
+        activeEngine = 'youtube';
+        try {
             if (ytPlayer && ytPlayer.loadVideoById) {
-                ytPlayer.loadVideoById({ videoId: video.id, suggestedQuality: 'small' });
+                ytPlayer.loadVideoById({
+                    videoId: video.id,
+                    suggestedQuality: 'small'
+                });
                 playerTitle.textContent = video.title;
                 setupMediaSession(video);
                 if (window.addToHistory) window.addToHistory(video);
+            } else {
+                // Si el reproductor no está listo, reintenta en un segundo
+                setTimeout(() => playTrack(index), 1000);
             }
+        } catch (err) {
+            console.error("Error al cargar canción:", err);
         }
     }
 

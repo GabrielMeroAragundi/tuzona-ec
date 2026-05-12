@@ -1078,14 +1078,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.onYouTubeIframeAPIReady = () => {
         ytPlayer = new YT.Player('yt-handler', {
-            height: '1',
-            width: '1',
-            videoId: '',
-            playerVars: {
-                'autoplay': 0,
-                'controls': 0,
-                'disablekb': 1,
-                'fs': 0,
             height: '1', width: '1', videoId: '',
             playerVars: { 'autoplay': 0, 'controls': 0, 'disablekb': 1, 'fs': 0, 'rel': 0, 'modestbranding': 1 },
             events: { 

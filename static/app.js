@@ -1158,24 +1158,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).catch(async (e) => {
                     console.error(`Error en fuente ${sourceIndex}:`, e);
                     
-                    // --- PLAN B: EXTRACCIÓN DESDE EL NAVEGADOR CON PROXY CORS ---
+                    // --- PLAN B: EXTRACCIÓN DIRECTA DESDE EL NAVEGADOR (PIPED API) ---
                     if (sourceIndex === 0) {
-                        console.log("Intentando extracción directa con proxy...");
+                        console.log("Intentando extracción directa desde Piped...");
                         try {
-                            const target = encodeURIComponent(`https://yt-api.com/api/video/info?id=${video.id}`);
-                            const res = await fetch(`https://api.allorigins.win/get?url=${target}`);
-                            const json = await res.json();
-                            const data = JSON.parse(json.contents);
-                            const formats = data.data?.adaptiveFormats || [];
-                            const audio = formats.find(f => f.type?.includes('audio'));
-                            if (audio && audio.url) {
-                                mainAudio.src = audio.url;
+                            const pipedRes = await fetch(`https://pipedapi.kavin.rocks/streams/${video.id}`);
+                            const pipedData = await pipedRes.json();
+                            const audioStream = pipedData.audioStreams ? pipedData.audioStreams[0] : null;
+                            if (audioStream && audioStream.url) {
+                                console.log("¡Éxito con Piped directo!");
+                                mainAudio.src = audioStream.url;
                                 mainAudio.play();
                                 playerTitle.textContent = video.title;
                                 return;
                             }
                         } catch (clientErr) {
-                            console.error("Error en extracción directa:", clientErr);
+                            console.error("Error en extracción directa Piped:", clientErr);
                         }
                     }
 

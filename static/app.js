@@ -1086,19 +1086,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 'controls': 0,
                 'disablekb': 1,
                 'fs': 0,
-                'rel': 0,
-                'showinfo': 0,
-                'modestbranding': 1
-            },
-            events: {
-                'onReady': onPlayerReady,
-                'onStateChange': onPlayerStateChange
+            height: '1', width: '1', videoId: '',
+            playerVars: { 'autoplay': 0, 'controls': 0, 'disablekb': 1, 'fs': 0, 'rel': 0, 'modestbranding': 1 },
+            events: { 
+                'onReady': () => console.log("YouTube Ready"), 
+                'onStateChange': onPlayerStateChange 
             }
         });
     };
 
-    function onPlayerReady(event) {
-        console.log("YouTube Player listo.");
+    function onPlayerStateChange(event) {
+        if (event.data === YT.PlayerState.ENDED) {
+            if (currentPlayingIndex < currentPlaylist.length - 1) playTrack(currentPlayingIndex + 1);
+        }
+        
+        if (event.data === YT.PlayerState.PLAYING) {
+            iconPlay.style.display = 'none';
+            iconPause.style.display = 'block';
+            startProgressTimer();
+            // Mantener el proceso vivo con silencio
+            if (mainAudio.paused) {
+                mainAudio.src = SILENT_MP3;
+                mainAudio.play().catch(() => {});
+            }
+        } else if (event.data === YT.PlayerState.PAUSED) {
+            // Solo pausar visualmente si el usuario lo hizo queriendo (web visible)
+            if (document.visibilityState === 'visible') {
+                iconPlay.style.display = 'block';
+                iconPause.style.display = 'none';
+                stopProgressTimer();
+                mainAudio.pause();
+            }
+        }
     }
 
     // --- LÓGICA DE INSTALACIÓN PWA ---
@@ -1130,9 +1149,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('TuZona EC instalada con éxito');
         if (btnInstallPwa) btnInstallPwa.style.display = 'none';
     });
-    const mainAudio = document.createElement('audio');
-    mainAudio.loop = true;
-    const SILENT_MP3 = "data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP8A/wD/";
     
     function setupMediaSession(video) {
         if ('mediaSession' in navigator) {
@@ -1165,30 +1181,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-
-    // Modificamos el evento de cambio de estado del reproductor
-    function onPlayerStateChange(event) {
-        if (event.data === YT.PlayerState.ENDED) {
-            if (currentPlayingIndex < currentPlaylist.length - 1) playTrack(currentPlayingIndex + 1);
-        }
-        
-        if (event.data === YT.PlayerState.PLAYING) {
-            iconPlay.style.display = 'none';
-            iconPause.style.display = 'block';
-            startProgressTimer();
-            // Mantener el proceso vivo con silencio persistente
-            mainAudio.src = SILENT_MP3;
-            mainAudio.play().catch(() => {});
-        } else if (event.data === YT.PlayerState.PAUSED) {
-            // Si se pausa pero la web sigue visible, es una pausa real del usuario
-            if (document.visibilityState === 'visible') {
-                iconPlay.style.display = 'block';
-                iconPause.style.display = 'none';
-                stopProgressTimer();
-                mainAudio.pause();
-            }
-        }
-    }
 
     function startProgressTimer() {
         stopProgressTimer();

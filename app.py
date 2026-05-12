@@ -365,14 +365,24 @@ def stream_audio():
             # Update cache
             STREAM_CACHE[video_id] = {'url': url, 'timestamp': now}
 
-        # En lugar de procrear el stream, redireccionamos al cliente directamente al URL
-        # Esto evita que el tráfico pase por Render (que está bloqueado)
-        from flask import redirect
-        return redirect(url)
+        # Usamos un Proxy para que el tráfico pase por Render y no sea bloqueado en el cliente
+        import httpx
+        from flask import Response
+
+        def generate():
+            try:
+                # Usamos una cabecera de usuario real para el stream
+                headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+                with httpx.stream("GET", url, headers=headers, follow_redirects=True, timeout=60.0) as r:
+                    for chunk in r.iter_bytes(chunk_size=16384):
+                        yield chunk
+            except Exception as e_stream:
+                print(f"Error en streaming de proxy: {e_stream}")
+
+        return Response(generate(), mimetype="audio/mpeg")
 
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        print(f"Error general en stream_audio: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/progress', methods=['GET'])

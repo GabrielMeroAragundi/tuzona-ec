@@ -350,7 +350,9 @@ def stream_audio():
                                     break
                         except: continue
             except Exception as e_final:
-                print(f"Error en extracción de emergencia: {e_final}")
+                print(f"Error CRITICO en extracción: {str(e_final)}")
+                import traceback
+                traceback.print_exc()
             
             if not url:
                 return jsonify({'error': 'Stream no disponible'}), 404
@@ -840,7 +842,7 @@ def verify_email(token):
     
     return "<h1>¡Cuenta verificada con éxito! Ya puedes iniciar sesión en TuZona EC.</h1><script>setTimeout(()=>window.location='/', 3000)</script>"
 
-@app.route('/api/login', methods=['POST'])
+@app.route('/api/login', methods=['GET', 'POST'])
 def login():
     data = request.json
     username = data.get('username')

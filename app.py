@@ -323,28 +323,27 @@ def stream_audio():
     try:
         if not url:
             try:
-                # Intento vía Extractor de Búsqueda Directa
-                from youtubesearchpython import Video
-                video_info = Video.get(f"https://www.youtube.com/watch?v={video_id}")
-                if video_info and 'streamingData' in video_info:
-                    formats = video_info['streamingData'].get('adaptiveFormats', [])
-                    audio_formats = [f for f in formats if 'audio' in f.get('mimeType', '')]
-                    if audio_formats:
-                        url = audio_formats[0].get('url')
-                        print(f"URL extraída vía Búsqueda Directa para {video_id}")
+                # Intento vía Instancia Estable Yewtu.be
+                import requests
+                api_url = f"https://yewtu.be/api/v1/videos/{video_id}"
+                resp = requests.get(api_url, timeout=12)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    # Buscamos el stream de audio
+                    audio_streams = data.get('adaptiveFormats', [])
+                    audio = [f for f in audio_streams if 'audio' in f.get('type', '')]
+                    if audio:
+                        url = audio[0].get('url')
+                        print(f"URL extraída vía Yewtu.be para {video_id}")
                 
                 if not url:
-                    # Si falla, usamos un API de respaldo súper simple (yt1s style)
-                    import requests
-                    api_resp = requests.get(f"https://yt-api.com/api/video/info?id={video_id}", timeout=10)
-                    if api_resp.status_code == 200:
-                        d = api_resp.json()
-                        formats = d.get('data', {}).get('adaptiveFormats', [])
-                        audio = [f for f in formats if 'audio' in f.get('type', '')]
-                        if audio:
-                            url = audio[0].get('url')
-            except Exception as e_search:
-                print(f"Error en motor de búsqueda directa: {str(e_search)}")
+                    # Fallback a Piped alternativo
+                    piped_url = f"https://pipedapi.kavin.rocks/streams/{video_id}"
+                    resp_p = requests.get(piped_url, timeout=10)
+                    if resp_p.status_code == 200:
+                        url = resp_p.json().get('audioStreams', [{}])[0].get('url')
+            except Exception as e_yew:
+                print(f"Error en motor Yewtu.be: {str(e_yew)}")
             
             if not url:
                 return jsonify({'error': 'Stream no disponible'}), 404
@@ -847,7 +846,7 @@ def verify_email(token):
 @app.route('/api/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'GET':
-        return jsonify({'error': 'Usa POST para loguear'}), 405
+        return jsonify({'message': 'Por favor inicia sesión vía POST'}), 200
     
     data = request.get_json(silent=True)
     if not data:

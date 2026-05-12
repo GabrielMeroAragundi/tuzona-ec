@@ -323,24 +323,37 @@ def stream_audio():
     try:
         if not url:
             try:
-                # Intento con OAuth (requiere vinculación manual en los logs la primera vez)
-                yt_url = f"https://www.youtube.com/watch?v={video_id}"
-                # Forzar cliente de TV (suele saltarse el error 429 en nubes)
-                yt = YouTube(yt_url, use_oauth=True, allow_oauth_cache=True, client='TV_EMBEDDED')
-                stream = yt.streams.filter(only_audio=True).first()
-                url = stream.url
-                print(f"URL extraída con OAuth para {video_id}")
-            except Exception as e_pytube:
-                print(f"OAuth/Pytubefix falló: {e_pytube}")
-                # Fallback a yt-dlp por si acaso
-                ydl_opts = {
-                    'format': 'bestaudio/best',
-                    'quiet': True,
-                    'nocheckcertificate': True
-                }
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
-                    url = info.get('url')
+                # Intento vía Piped API (Proxy gratuito que salta el bloqueo de Render)
+                import requests
+                piped_instances = [
+                    "https://pipedapi.kavin.rocks",
+                    "https://api.piped.victr.me",
+                    "https://pipedapi.hostux.net"
+                ]
+                
+                for instance in piped_instances:
+                    try:
+                        api_url = f"{instance}/streams/{video_id}"
+                        resp = requests.get(api_url, timeout=10)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            # Buscamos el stream de audio
+                            audio_streams = [s for s in data.get('audioStreams', []) if s.get('format') == 'WEBM_OPUS' or s.get('format') == 'M4A']
+                            if audio_streams:
+                                url = audio_streams[0].get('url')
+                                print(f"URL extraída vía Proxy Piped ({instance})")
+                                break
+                    except:
+                        continue
+
+                if not url:
+                    # Intento con pytubefix/OAuth (como último recurso)
+                    yt_url = f"https://www.youtube.com/watch?v={video_id}"
+                    yt = YouTube(yt_url, use_oauth=True, allow_oauth_cache=True, client='TV_EMBEDDED')
+                    stream = yt.streams.filter(only_audio=True).first()
+                    url = stream.url
+            except Exception as e_proxy:
+                print(f"Error en Proxy/OAuth: {e_proxy}")
             
             if not url:
                 return jsonify({'error': 'Stream no disponible'}), 404

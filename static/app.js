@@ -1227,6 +1227,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const playerBar = document.getElementById('player-bar');
         if (playerBar) playerBar.classList.remove('hidden');
 
+        // ACTIVAR BLOQUEO DE SUSPENSIÓN
+        requestWakeLock();
+
         // DETECCIÓN DE DISPOSITIVO MÓVIL
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
@@ -1273,11 +1276,18 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let activeEngine = 'youtube'; 
-    // Mover definición de SILENT_MP3 y mainAudio aquí si no están arriba
-    if (typeof SILENT_MP3 === 'undefined') {
-        window.SILENT_MP3 = "data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP8A/wD/";
-        window.mainAudio = document.createElement('audio');
-        mainAudio.loop = true;
+    const SILENT_MP3 = "data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP8A/wD/";
+    window.mainAudio = document.getElementById('main-audio-element');
+    if (mainAudio) mainAudio.loop = true;
+
+    // --- BLOQUEO DE SUSPENSIÓN (WAKE LOCK) ---
+    let wakeLock = null;
+    async function requestWakeLock() {
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await navigator.wakeLock.request('screen');
+            }
+        } catch (err) {}
     }
 
     function useYTFallback(video) {

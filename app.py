@@ -361,35 +361,11 @@ def stream_audio():
             # Update cache
             STREAM_CACHE[video_id] = {'url': url, 'timestamp': now}
 
-        headers = {}
-        range_header = request.headers.get('Range')
-        if range_header:
-            headers['Range'] = range_header
+        # En lugar de procrear el stream, redireccionamos al cliente directamente al URL
+        # Esto evita que el tráfico pase por Render (que está bloqueado)
+        from flask import redirect
+        return redirect(url)
 
-        # Increase timeout and use a faster client configuration
-        client = httpx.Client(timeout=60.0)
-        req = client.build_request("GET", url, headers=headers)
-        resp = client.send(req, stream=True)
-        
-        def generate():
-            try:
-                # Use a larger chunk size for smoother streaming
-                for chunk in resp.iter_bytes(chunk_size=16384):
-                    yield chunk
-            finally:
-                resp.close()
-                client.close()
-
-        resp_headers = {
-            'Content-Type': resp.headers.get('Content-Type', 'audio/webm'),
-            'Accept-Ranges': resp.headers.get('Accept-Ranges', 'bytes'),
-            'Content-Length': resp.headers.get('Content-Length'),
-            'Content-Range': resp.headers.get('Content-Range'),
-            'Cache-Control': 'public, max-age=3600'
-        }
-        resp_headers = {k: v for k, v in resp_headers.items() if v}
-        
-        return Response(generate(), status=resp.status_code, headers=resp_headers)
     except Exception as e:
         import traceback
         traceback.print_exc()

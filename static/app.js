@@ -1004,101 +1004,70 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedVideos.size === 0 || isDownloading) return;
         const ids = Array.from(selectedVideos);
         isDownloading = true;
-        if(queueDownloadBtn) queueDownloadBtn.disabled = true;
-        if(topDownloadBtn) topDownloadBtn.disabled = true;
+        
+        const fmt = (document.querySelector('input[name="dl-format"]:checked') || {}).value || 'mp3';
+        showNotification(`Iniciando descarga de ${ids.length} canciones...`);
 
-        const sessionId = Date.now().toString();
-        let progressInterval;
-
-        const updateProgressUI = (msg, percent = null) => {
-            const fill = percent !== null
-                ? `<div style="position:absolute;left:0;top:0;bottom:0;width:${percent}%;background:rgba(255,255,255,.25);z-index:1;transition:width .5s ease"></div>`
-                : '';
-            const inner = `${fill}<div style="position:relative;z-index:2;display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:.8rem 1.5rem;gap:.5rem"><div class="spinner"></div>${msg}</div>`;
+        // Procesar cada canción individualmente
+        for (let i = 0; i < ids.length; i++) {
+            const videoId = ids[i];
+            const videoData = selectedVideoData.get(videoId);
+            const msg = `Descargando (${i + 1}/${ids.length}): ${videoData ? videoData.title : videoId}`;
+            
+            // Actualizar UI de progreso
             [queueDownloadBtn, topDownloadBtn].forEach(b => {
-                if(!b) return;
-                b.style.position = 'relative';
-                b.style.overflow = 'hidden';
-                b.style.padding = '0';
-                b.innerHTML = inner;
+                if(b) b.innerHTML = `<div class="spinner"></div> ${i + 1}/${ids.length}`;
             });
-        };
 
-        updateProgressUI('Conectando...', 0);
-
-        progressInterval = setInterval(async () => {
             try {
-                const res = await fetch(`/api/progress?session_id=${sessionId}`);
-                if (res.ok) {
-                    const d = await res.json();
-                    if (d.status === 'starting') updateProgressUI('Preparando descarga...', 5);
-                    else if (d.status === 'downloading') {
-                        let num = parseFloat((d.percent || '').toString().replace(/[^0-9.]/g, ''));
-                        if (isNaN(num)) num = 10;
-                        const txt = ids.length > 1 ? `(${d.current}/${d.total}) ${num.toFixed(1)}%` : `Descargando: ${num.toFixed(1)}%`;
-                        updateProgressUI(txt, num);
-                    } else if (d.status === 'packing') updateProgressUI('Empaquetando...', 95);
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: [videoId], format: fmt })
+                });
+
+                if (!response.ok) throw new Error("Error en el servidor");
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                
+                // Intentar obtener el nombre real del archivo
+                let filename = `${videoId}.${fmt}`;
+                const disp = response.headers.get('Content-Disposition');
+                if (disp && disp.includes('filename')) {
+                    const m = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disp);
+                    if (m && m[1]) filename = m[1].replace(/['"]/g, '');
                 }
-            } catch {}
-        }, 800);
+                
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                }, 100);
 
-        try {
-            const fmt = (document.querySelector('input[name="dl-format"]:checked') || {}).value || 'mp3';
-            showNotification(`Iniciando descarga en ${fmt.toUpperCase()}...`);
-
-            const response = await fetch('/api/download', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ids, format: fmt, session_id: sessionId })
-            });
-
-            clearInterval(progressInterval);
-            if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Fallo en la descarga'); }
-
-            const contentType = response.headers.get('Content-Type') || '';
-            let fileExt = contentType.includes('zip') ? 'zip' : (fmt === 'mp4' ? 'mp4' : 'mp3');
-            let filename = `descarga_${Date.now()}.${fileExt}`;
-            const disp = response.headers.get('Content-Disposition');
-            if (disp && disp.indexOf('attachment') !== -1) {
-                const m = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disp);
-                if (m && m[1]) { filename = m[1].replace(/['"]/g, ''); if (filename.startsWith("UTF-8''")) filename = decodeURIComponent(filename.substring(7)); }
+            } catch (error) {
+                console.error(`Fallo en ${videoId}:`, error);
+                showNotification(`Error al descargar: ${videoData ? videoData.title : videoId}`, true);
             }
-
-            const blob = await response.blob();
-            updateProgressUI('Guardando archivo...');
-
-            try {
-                if (window.showSaveFilePicker) {
-                    const handle = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: fileExt === 'zip' ? 'ZIP' : fileExt.toUpperCase(), accept: fileExt === 'zip' ? {'application/zip':['.zip']} : (fileExt === 'mp4' ? {'video/mp4':['.mp4']} : {'audio/mpeg':['.mp3']}) }] });
-                    const w = await handle.createWritable();
-                    await w.write(blob); await w.close();
-                } else throw new Error('no api');
-            } catch (fsErr) {
-                if (fsErr.name !== 'AbortError') {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none'; a.href = url; a.download = filename;
-                    document.body.appendChild(a); a.click(); URL.revokeObjectURL(url);
-                } else { showNotification('Descarga cancelada.'); return; }
-            }
-
-            showNotification('¡Descarga completada con éxito! ✅');
-            selectedVideos.clear();
-            document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
-            updateDownloadPanel();
-
-        } catch (error) {
-            clearInterval(progressInterval);
-            showNotification(error.message, true);
-        } finally {
-            clearInterval(progressInterval);
-            isDownloading = false;
             
-            const restoreHtmlTop = `Descargar Seleccionadas`;
-            
-            if(queueDownloadBtn) { queueDownloadBtn.style.position=''; queueDownloadBtn.style.overflow=''; queueDownloadBtn.style.padding=''; queueDownloadBtn.innerHTML = `Descargar (${selectedVideos.size})`; queueDownloadBtn.disabled = selectedVideos.size === 0; }
-            if(topDownloadBtn) { topDownloadBtn.style.position=''; topDownloadBtn.style.overflow=''; topDownloadBtn.style.padding=''; topDownloadBtn.innerHTML = restoreHtmlTop; topDownloadBtn.disabled = selectedVideos.size === 0; }
+            // Pequeña espera entre descargas para no saturar al navegador
+            await new Promise(r => setTimeout(r, 800));
         }
+
+        showNotification('¡Todas las descargas han sido enviadas! ✅');
+        selectedVideos.clear();
+        selectedVideoData.clear();
+        document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+        updateDownloadPanel();
+        isDownloading = false;
+        
+        if(queueDownloadBtn) queueDownloadBtn.innerHTML = `Descargar (0)`;
+        if(topDownloadBtn) topDownloadBtn.innerHTML = `Descargar Seleccionadas`;
     };
 
     if(queueDownloadBtn) queueDownloadBtn.addEventListener('click', handleDownload);

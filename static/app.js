@@ -1227,6 +1227,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const playerBar = document.getElementById('player-bar');
         if (playerBar) playerBar.classList.remove('hidden');
 
+        // 1. ACTIVACIÓN INSTANTÁNEA (Requerido para que el móvil no bloquee el sonido después)
+        if (mainAudio) {
+            mainAudio.src = SILENT_MP3;
+            mainAudio.play().catch(() => {});
+        }
+
         // ACTIVAR BLOQUEO DE SUSPENSIÓN
         requestWakeLock();
 
@@ -1234,14 +1240,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
         if (isMobile) {
-            // --- MODO MÓVIL (AUDIO DIRECTO PARA SEGUNDO PLANO) ---
+            // --- MODO MÓVIL ---
             activeEngine = 'audio';
             try {
                 if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
                 
-                // TEMPORIZADOR DE EMERGENCIA (3.5 segundos)
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3500);
+                const timeoutId = setTimeout(() => controller.abort(), 4000);
 
                 const resp = await fetch(`/api/stream_url/${video.id}`, { signal: controller.signal });
                 const data = await resp.json();
@@ -1253,7 +1258,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         playerTitle.textContent = video.title;
                         setupMediaSession(video);
                         if (window.addToHistory) window.addToHistory(video);
-                    }).catch(() => useYTFallback(video));
+                    }).catch(() => {
+                        console.log("Fallo al reproducir audio directo, usando YouTube");
+                        useYTFallback(video);
+                    });
                 } else {
                     useYTFallback(video);
                 }
@@ -1261,7 +1269,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 useYTFallback(video);
             }
         } else {
-            // --- MODO PC (YOUTUBE OFICIAL) ---
+            // --- MODO PC ---
             activeEngine = 'youtube';
             if (mainAudio && !mainAudio.paused) mainAudio.pause();
             if (ytPlayer && ytPlayer.loadVideoById) {

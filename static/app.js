@@ -1204,16 +1204,48 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playerBar) playerBar.classList.remove('hidden');
 
         try {
-            if (ytPlayer && ytPlayer.loadVideoById) {
-                ytPlayer.loadVideoById(video.id);
-                playerTitle.textContent = video.title;
-                setupMediaSession(video); // Configurar pantalla de bloqueo
-                if (window.addToHistory) window.addToHistory(video);
+            if (mainAudio) mainAudio.pause();
+            if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
+
+            // --- EXTRACCIÓN POR PROXY (PARA SEGUNDO PLANO EN MÓVIL) ---
+            playerTitle.textContent = video.title + ' (Buscando señal...)';
+            
+            // Usamos Piped a través de un Proxy para saltar el bloqueo de seguridad (CORS)
+            const proxyUrl = "https://api.allorigins.win/get?url=";
+            const targetUrl = encodeURIComponent(`https://pipedapi.kavin.rocks/streams/${video.id}`);
+            
+            const resp = await fetch(proxyUrl + targetUrl);
+            const data = await resp.json();
+            const pipedData = JSON.parse(data.contents);
+
+            if (pipedData && pipedData.audioStreams && pipedData.audioStreams.length > 0) {
+                const stream = pipedData.audioStreams.sort((a,b) => b.bitrate - a.bitrate)[0];
+                
+                activeEngine = 'audio';
+                mainAudio.src = stream.url;
+                mainAudio.play().then(() => {
+                    playerTitle.textContent = video.title;
+                    if (window.addToHistory) window.addToHistory(video);
+                    setupMediaSession(video);
+                }).catch(e => {
+                    console.log("Audio play failed, fallback to YT:", e);
+                    useYTFallback(video);
+                });
             } else {
-                showNotification("El reproductor aún se está cargando, espera un segundo...", true);
+                useYTFallback(video);
             }
         } catch (err) {
-            console.error("Fallo crítico:", err);
+            console.error("Fallo extracción Proxy:", err);
+            useYTFallback(video);
+        }
+    }
+
+    function useYTFallback(video) {
+        activeEngine = 'youtube';
+        if (ytPlayer && ytPlayer.loadVideoById) {
+            ytPlayer.loadVideoById(video.id);
+            playerTitle.textContent = video.title;
+            setupMediaSession(video);
         }
     }
 

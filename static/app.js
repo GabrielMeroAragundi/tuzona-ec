@@ -1073,79 +1073,50 @@ document.addEventListener('DOMContentLoaded', () => {
     const playerChannel = document.getElementById('player-channel');
     const playerThumb   = document.getElementById('player-thumb');
     // --- NUEVO MOTOR DE REPRODUCCIÓN (YOUTUBE IFRAME API) ---
-    // --- DOBLE MOTOR DE REPRODUCCIÓN (YOUTUBE + KEEP-ALIVE) ---
-    const bgKeepAlive = document.getElementById('bg-keepalive');
     let ytPlayer = null;
     let progressTimer = null;
-    let wakeLock = null;
 
     window.onYouTubeIframeAPIReady = () => {
         ytPlayer = new YT.Player('yt-handler', {
-            height: '1', width: '1', videoId: '',
-            playerVars: { 'autoplay': 0, 'controls': 0, 'disablekb': 1, 'fs': 0, 'rel': 0, 'modestbranding': 1 },
-            events: { 
-                'onReady': () => console.log("YouTube Ready"), 
-                'onStateChange': onPlayerStateChange 
+            height: '1',
+            width: '1',
+            videoId: '',
+            playerVars: {
+                'autoplay': 0,
+                'controls': 0,
+                'disablekb': 1,
+                'fs': 0,
+                'rel': 0,
+                'showinfo': 0,
+                'modestbranding': 1
+            },
+            events: {
+                'onReady': onPlayerReady,
+                'onStateChange': onPlayerStateChange
             }
         });
     };
 
-    // Sonido de silencio base64 (1 segundo) para mantener el proceso vivo
-    const SILENT_MP3 = "data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP8A/wD/";
-
-    async function requestWakeLock() {
-        try {
-            if ('wakeLock' in navigator) {
-                wakeLock = await navigator.wakeLock.request('screen');
-                console.log("Wake Lock activo: La pantalla no se dormirá.");
-            }
-        } catch (err) { console.log("Wake Lock falló:", err); }
+    function onPlayerReady(event) {
+        console.log("YouTube Player listo.");
     }
 
-    function setupMediaSession(video) {
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.metadata = new MediaMetadata({
-                title: video.title,
-                artist: video.channel || 'TuZona EC',
-                artwork: [{ src: video.thumbnail || '/static/favicon.png', sizes: '512x512', type: 'image/png' }]
-            });
-            
-            navigator.mediaSession.setActionHandler('play', () => { if(ytPlayer) ytPlayer.playVideo(); });
-            navigator.mediaSession.setActionHandler('pause', () => { if(ytPlayer) ytPlayer.pauseVideo(); });
-            navigator.mediaSession.setActionHandler('previoustrack', () => btnPrev.click());
-            navigator.mediaSession.setActionHandler('nexttrack', () => btnNext.click());
-        }
-    }
-
-    function startBackgroundMode() {
-        if (bgKeepAlive) {
-            bgKeepAlive.src = SILENT_MP3;
-            bgKeepAlive.play().catch(e => console.log("Silence play failed:", e));
-        }
-        requestWakeLock();
-    }
-
-    function stopBackgroundMode() {
-        if (bgKeepAlive) bgKeepAlive.pause();
-        if (wakeLock) { wakeLock.release(); wakeLock = null; }
-    }
-
-    // Modificamos el evento de cambio de estado del reproductor
     function onPlayerStateChange(event) {
         if (event.data === YT.PlayerState.ENDED) {
-            if (currentPlayingIndex < currentPlaylist.length - 1) playTrack(currentPlayingIndex + 1);
+            // Siguiente canción automáticamente
+            if (currentPlayingIndex < currentPlaylist.length - 1) {
+                playTrack(currentPlayingIndex + 1);
+            }
         }
         
         if (event.data === YT.PlayerState.PLAYING) {
             iconPlay.style.display = 'none';
             iconPause.style.display = 'block';
             startProgressTimer();
-            startBackgroundMode(); // Activar silencio de fondo
         } else {
             iconPlay.style.display = 'block';
             iconPause.style.display = 'none';
             stopProgressTimer();
-            // No detenemos el modo fondo para que los controles de bloqueo sigan ahí
         }
     }
 
@@ -1193,7 +1164,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPlayingIndex = index;
         const video = currentPlaylist[index];
 
-        playerTitle.textContent = video.title + ' (Conectando...)';
+        playerTitle.textContent = video.title + ' (Cargando...)';
         if (playerChannel) playerChannel.textContent = video.channel || '';
         if (playerThumb) {
             if (video.thumbnail) playerThumb.innerHTML = `<img src="${video.thumbnail}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
@@ -1203,54 +1174,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const playerBar = document.getElementById('player-bar');
         if (playerBar) playerBar.classList.remove('hidden');
 
-        // --- ACTIVACIÓN INSTANTÁNEA ---
-        activeEngine = 'audio';
-        // Silencio más compatible (1 seg)
-        mainAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP8A/wD/";
-        mainAudio.play().catch(() => {}); 
-
         try {
-            if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
-
-            // Un solo intento ultra-rápido (3 seg)
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000);
-            
-            let streamUrl = null;
-            try {
-                const node = "https://pipedapi.kavin.rocks/streams/";
-                const proxyUrl = "https://api.allorigins.win/get?url=";
-                const resp = await fetch(proxyUrl + encodeURIComponent(node + video.id), { signal: controller.signal });
-                const data = await resp.json();
-                const pipedData = JSON.parse(data.contents);
-                if (pipedData.audioStreams && pipedData.audioStreams.length > 0) {
-                    streamUrl = pipedData.audioStreams.sort((a,b) => b.bitrate - a.bitrate)[0].url;
-                }
-            } catch(e) { console.log("Extracción rápida falló"); }
-            
-            clearTimeout(timeoutId);
-
-            if (streamUrl) {
-                mainAudio.src = streamUrl;
-                mainAudio.play().then(() => {
-                    playerTitle.textContent = video.title;
-                    if (window.addToHistory) window.addToHistory(video);
-                    setupMediaSession(video);
-                }).catch(() => useYTFallback(video));
+            if (ytPlayer && ytPlayer.loadVideoById) {
+                ytPlayer.loadVideoById(video.id);
+                playerTitle.textContent = video.title;
+                if (window.addToHistory) window.addToHistory(video);
             } else {
-                useYTFallback(video);
+                showNotification("El reproductor aún se está cargando, espera un segundo...", true);
             }
         } catch (err) {
-            useYTFallback(video);
-        }
-    }
-
-    function useYTFallback(video) {
-        activeEngine = 'youtube';
-        if (ytPlayer && ytPlayer.loadVideoById) {
-            ytPlayer.loadVideoById(video.id);
-            playerTitle.textContent = video.title;
-            setupMediaSession(video);
+            console.error("Fallo crítico:", err);
         }
     }
 

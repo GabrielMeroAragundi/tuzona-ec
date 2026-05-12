@@ -9,3 +9,4 @@ gunicorn==21.2.0
 itsdangerous==2.1.2
 pytubefix
 httpx==0.25.0
+flask-cors

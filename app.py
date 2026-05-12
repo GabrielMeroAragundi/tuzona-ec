@@ -14,8 +14,6 @@ try:
 except ImportError:
     CORS = None
     print("Aviso: flask_cors no encontrado, continuando sin CORS")
-from youtubesearchpython import VideosSearch, ChannelsSearch, PlaylistsSearch, Search
-import httpx
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -23,7 +21,6 @@ from itsdangerous import URLSafeTimedSerializer
 import secrets
 import base64
 from captcha.image import ImageCaptcha
-from pytubefix import YouTube
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'tuzona-secret-key-2025')
@@ -157,7 +154,8 @@ def index():
     return render_template('index.html')
 
 @app.route('/api/search', methods=['GET'])
-def search_youtube():
+def api_search():
+    from youtubesearchpython import VideosSearch, ChannelsSearch, PlaylistsSearch
     query = request.args.get('q', '')
     try:
         max_results = int(request.args.get('limit', 40))
@@ -329,6 +327,8 @@ def stream_audio():
     else:
         url = None
 
+    import httpx
+    from pytubefix import YouTube
     source_type = request.args.get('source', '0') # 0: VR, 1: External, 2: Piped
     
     try:
@@ -517,6 +517,7 @@ def download_videos():
 @app.route('/api/trending', methods=['GET'])
 def get_trending():
     """Devuelve 3 canciones trending del día para las cards del hero."""
+    from youtubesearchpython import VideosSearch
     try:
         query = 'musica nueva 2025 oficial'
         search = VideosSearch(query, limit=20)

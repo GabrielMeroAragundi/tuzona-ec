@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TuZona EC — Música Sin Límites</title>
+  <meta name="description"
+    content="Reproduce y descarga música de YouTube en 320kbps. La plataforma musical del Ecuador.">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <link rel="icon" type="image/png" href="/static/favicon.png?v=4">
+  <link rel="stylesheet" href="/static/style.css?v=17">
+</head>
+
+<body>
+  <div class="bg-effects">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+  </div>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="#" class="nav-logo">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="url(#logo-grad)">
+          <defs>
+            <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#a855f7" />
+              <stop offset="100%" stop-color="#3b82f6" />
+            </linearGradient>
+          </defs>
+          <polygon points="5 3 19 12 5 21 5 3" />
+        </svg>
+        <span class="logo-name">TuZona</span><span class="logo-ec">EC</span>
+      </a>
+      <form id="search-form" class="nav-search-form">
+        <input type="text" id="search-input" placeholder="Buscar artista o canción..." autocomplete="off" required>
+        <button type="submit"
+          style="background:none; border:none; color:var(--txt-muted); cursor:pointer; display:flex; align-items:center; padding:0; transition:color 0.3s;"
+          onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--txt-muted)'">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </button>
+      </form>
+      <div class="nav-links">
+        <a href="#home" class="nav-link active">Inicio</a>
+        <a href="#tendencias" class="nav-link">Tendencias</a>
+        <a href="#biblioteca" class="nav-link">Biblioteca</a>
+        <a href="#generos" class="nav-link">Géneros</a>
+      </div>
+      <div class="nav-actions">
+        <button class="nav-icon-btn" id="theme-toggle" title="Tema">
+          <svg id="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+          <svg id="icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+            stroke-width="2" style="display:none">
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+          </svg>
+        </button>
+        <button class="nav-icon-btn" title="Notificaciones"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg></button>
+        <div id="user-actions">
+          <button class="btn-login" id="btn-login">Iniciar sesión</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- PAGE LAYOUT -->
+  <!-- GLOBAL TOP PLAYER -->
+  <div class="global-player-bar hidden" id="player-bar">
+    <div class="gp-left">
+      <div class="gp-art" id="player-thumb">🎵</div>
+      <div class="gp-info">
+        <div class="gp-title" id="player-title">Sin reproducción</div>
+        <div class="gp-artist" id="player-channel">Busca una canción</div>
+      </div>
+      <button class="gp-btn" id="player-fav" title="Favorito">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+          <path
+            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="gp-center">
+      <div class="gp-controls">
+        <button class="gp-btn"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2"
+            fill="none">
+            <polyline points="16 3 21 3 21 8" />
+            <line x1="4" y1="20" x2="21" y2="3" />
+            <polyline points="21 16 21 21 16 21" />
+            <line x1="15" y1="15" x2="21" y2="21" />
+          </svg></button>
+        <button class="gp-btn" id="player-prev"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor"
+            stroke-width="2" fill="none">
+            <polygon points="19 20 9 12 19 4 19 20" />
+            <line x1="5" y1="19" x2="5" y2="5" />
+          </svg></button>
+        <button class="gp-play" id="player-play">
+          <svg id="icon-play" viewBox="0 0 24 24" width="20" height="20" fill="white">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+          <svg id="icon-pause" viewBox="0 0 24 24" width="20" height="20" fill="white" style="display:none">
+            <rect x="6" y="4" width="4" height="16" />
+            <rect x="14" y="4" width="4" height="16" />
+          </svg>
+        </button>
+        <button class="gp-btn" id="player-next"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor"
+            stroke-width="2" fill="none">
+            <polygon points="5 4 15 12 5 20 5 4" />
+            <line x1="19" y1="5" x2="19" y2="19" />
+          </svg></button>
+        <button class="gp-btn" title="Repetir"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor"
+            stroke-width="2" fill="none">
+            <polyline points="17 1 21 5 17 9" />
+            <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+            <polyline points="7 23 3 19 7 15" />
+            <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+          </svg></button>
+      </div>
+      <div class="gp-progress-row">
+        <span id="player-time-current">0:00</span>
+        <input type="range" id="player-progress" value="0" min="0" step="1" class="gp-bar">
+        <span id="player-time-total">0:00</span>
+      </div>
+    </div>
+
+    <div class="gp-right">
+      <button id="vol-btn" class="gp-btn vol-icon"><svg id="icon-vol-up" viewBox="0 0 24 24" width="16" height="16"
+          fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+        </svg><svg id="icon-vol-mute" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+          stroke-width="2" style="display:none">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <line x1="23" y1="9" x2="17" y2="15" />
+          <line x1="17" y1="9" x2="23" y2="15" />
+        </svg></button>
+      <input type="range" id="volume-slider" min="0" max="1" step="0.02" value="1" class="gp-vol-bar">
+      <button class="gp-btn" title="Menú"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor"
+          stroke-width="2" fill="none">
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg></button>
+    </div>
+
+    <audio id="main-audio" style="display:none"></audio>
+  </div>
+
+  <main class="main-content">
+    <!-- HERO -->
+    <section id="home" class="hero-section-new">
+      <div class="hero-left">
+        <div class="hero-badge">EC • La música que mueve Ecuador 💜</div>
+        <h1 class="hero-title">Tu música,<br><span class="gradient-text">sin límites</span></h1>
+        <p class="hero-subtitle">Reproduce y descarga tus canciones favoritas en la mejor calidad 320kbps. Descubre
+          nuevos artistas, crea tu colección y lleva tu música a todas partes.</p>
+
+
+      </div>
+      <div class="hero-right">
+        <div class="hero-banner-wrap">
+          <img src="/static/neon_map.png" alt="Neon Map" class="hero-banner-img">
+          <div class="hero-floating-cards">
+            <div class="hf-card">
+              <div class="hf-icon">🎵</div>
+              <div class="hf-text"><b>320kbps</b><small>Calidad premium</small></div>
+            </div>
+            <div class="hf-card">
+              <div class="hf-icon">📥</div>
+              <div class="hf-text"><b>Descargas</b><small>ilimitadas</small></div>
+            </div>
+            <div class="hf-card">
+              <div class="hf-icon">💜</div>
+              <div class="hf-text"><b>Hecho en EC</b><small>Para el mundo</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOADER -->
+    <div id="loader" class="loader hidden">
+      <div class="loader-bars"><span></span><span></span><span></span><span></span><span></span></div>
+      <p>Buscando canciones...</p>
+    </div>
+
+    <!-- SEARCH RESULTS -->
+    <section id="search-results" class="results-section hidden" style="margin-bottom: 80px;">
+      <div class="search-header-area">
+        <h2 id="results-heading" class="search-main-heading">Resultados</h2>
+        <div class="search-tabs">
+          <button class="s-tab active" id="tab-songs">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+            </svg>
+            <div class="s-tab-text"><b>Canciones</b><small id="s-tab-count">0 resultados</small></div>
+          </button>
+          <button class="s-tab" id="tab-artists">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <div class="s-tab-text"><b>Artistas</b><small id="a-tab-count">0 resultados</small></div>
+          </button>
+          <button class="s-tab" id="tab-albums">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <div class="s-tab-text"><b>Álbumes</b><small id="p-tab-count">0 resultados</small></div>
+          </button>
+          <button class="s-tab" id="tab-playlists">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="8" y1="6" x2="21" y2="6" />
+              <line x1="8" y1="12" x2="21" y2="12" />
+              <line x1="8" y1="18" x2="21" y2="18" />
+              <line x1="3" y1="6" x2="3.01" y2="6" />
+              <line x1="3" y1="12" x2="3.01" y2="12" />
+              <line x1="3" y1="18" x2="3.01" y2="18" />
+            </svg>
+            <div class="s-tab-text"><b>Playlists</b><small id="l-tab-count">0 resultados</small></div>
+          </button>
+        </div>
+      </div>
+
+      <div class="search-layout-grid">
+        <!-- LEFT COLUMN: Track List -->
+        <div class="search-main-list">
+          <div id="controls-panel" class="list-action-bar hidden">
+            <div class="lab-left">
+              <label class="custom-checkbox-wrapper">
+                <input type="checkbox" id="select-all-cb">
+                <span class="custom-checkbox"></span>
+              </label>
+              <span class="lab-text">Seleccionar todo (<span id="top-selection-count">0 seleccionadas</span>)</span>
+              <button class="lab-btn" style="margin-left: 15px;"><svg viewBox="0 0 24 24" width="16" height="16"
+                  fill="white">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg> Reproducir todo</button>
+            </div>
+            <div class="lab-right">
+              <button id="top-download-btn" class="lab-btn lab-btn-outline" disabled><svg viewBox="0 0 24 24" width="16"
+                  height="16" fill="none" stroke="var(--primary)" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg> <span style="color:var(--primary); font-weight:600;">Descargar seleccionadas <span
+                    class="d-count"></span></span></button>
+              <div class="lab-sort-wrapper" style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 0.8rem; color: var(--txt-muted);">Ordenar por:</span>
+                <select id="sort-select"
+                  style="background: var(--bg-card); color: var(--txt); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 4px 8px; font-size: 0.85rem; cursor: pointer; outline: none;">
+                  <option value="relevance">Relevancia</option>
+                  <option value="year-desc">Año (Nuevo)</option>
+                  <option value="year-asc">Año (Antiguo)</option>
+                  <option value="title-asc">Título (A-Z)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="list-table">
+            <div class="list-table-header">
+              <div class="lth-col lth-num">#</div>
+              <div class="lth-col lth-song">CANCIÓN</div>
+              <div class="lth-col lth-artist">ARTISTA</div>
+              <div class="lth-col lth-album">ÁLBUM</div>
+              <div class="lth-col lth-time"><svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+                  stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg></div>
+              <div class="lth-col lth-dl">DESCARGA</div>
+            </div>
+            <div id="results-container" class="list-table-body">
+              <!-- Track rows inserted here via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Download Queue -->
+        <div class="search-sidebar-queue">
+          <div class="queue-header">
+            <h3>Descargas</h3>
+            <span class="queue-badge" id="queue-count-badge">0</span>
+          </div>
+          <div class="queue-list" id="queue-list">
+            <div class="empty-state" style="padding: 2rem 0; font-size: 0.85rem;">No has seleccionado ninguna canción
+              aún.</div>
+          </div>
+          <div class="queue-footer">
+            <button id="queue-download-btn" class="btn-primary"
+              style="width: 100%; justify-content: center; border-radius: 20px; padding: 12px; font-size: 1rem;"
+              disabled><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                stroke-width="2" style="margin-right:8px">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg> Descargar (<span class="d-count">0</span>)</button>
+            <p class="queue-footer-text"
+              style="text-align: center; color: var(--txt-muted); font-size: 0.8rem; margin-top: 15px;"><svg
+                viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                style="margin-right:4px; vertical-align:middle">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg> Descargas en alta calidad</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+
+    <!-- TENDENCIAS -->
+    <section id="tendencias" class="tendencias-section">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">🔥 Música en Tendencia</h2>
+          <p class="section-sub">Las canciones más escuchadas ahora mismo</p>
+        </div>
+        <a href="#" class="ver-todo-btn" id="trending-ver-todo">Ver todo →</a>
+      </div>
+      <div id="trending-loader" class="loader" style="padding:2rem 0">
+        <div class="loader-bars"><span></span><span></span><span></span><span></span><span></span></div>
+        <p>Cargando tendencias...</p>
+      </div>
+      <div id="trending-grid" class="media-grid-layout numbered-grid" style="display:none"></div>
+      <div style="text-center; margin-top: 30px; display: flex; justify-content: center;">
+        <button id="load-more-trending-btn" class="btn-ghost"
+          style="border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 20px; padding: 10px 24px; color: var(--txt-muted); cursor: pointer;">Ver
+          más canciones en tendencia ⌄</button>
+      </div>
+    </section>
+
+
+
+
+
+
+    <!-- BIBLIOTECA -->
+    <section id="biblioteca" class="biblioteca-section">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">📚 Tu Biblioteca</h2>
+          <p class="section-sub">Historial y canciones favoritas</p>
+        </div>
+      </div>
+      <div class="biblioteca-stack" style="display: flex; flex-direction: column; gap: 60px;">
+        <div class="bib-panel">
+          <div class="bib-panel-header"
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3>🕐 Recientes</h3>
+            <button class="btn-ghost" id="clear-history-btn"
+              style="color: var(--txt-muted); background: transparent; border: 1px solid rgba(255,255,255,0.1); padding: 6px 16px; border-radius: 12px; cursor: pointer;">Limpiar</button>
+          </div>
+          <div id="history-list" class="media-grid-layout">
+            <div class="empty-state" style="grid-column: 1/-1;"><span>🎵</span>
+              <p>Aún no has reproducido nada.<br>¡Busca una canción!</p>
+            </div>
+          </div>
+        </div>
+        <div class="bib-panel">
+          <div class="bib-panel-header"
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3>❤️ Favoritos</h3>
+            <button class="btn-ghost" id="clear-favorites-btn"
+              style="color: var(--txt-muted); background: transparent; border: 1px solid rgba(255,255,255,0.1); padding: 6px 16px; border-radius: 12px; cursor: pointer;">Limpiar</button>
+          </div>
+          <div id="favorites-list" class="media-grid-layout">
+            <div class="empty-state" style="grid-column: 1/-1;"><span>❤️</span>
+              <p>Pulsa el corazón en<br>cualquier canción.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- MIS LISTAS -->
+        <div class="bib-panel">
+          <div class="bib-panel-header"
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3>🎶 Mis Listas</h3>
+            <button class="btn-ghost" id="create-playlist-btn"
+              style="color: var(--primary); background: transparent; border: 1px solid var(--primary); padding: 6px 16px; border-radius: 12px; cursor: pointer; font-weight: 600;">+ Crear Lista</button>
+          </div>
+          <!-- Vista de listas -->
+          <div id="playlists-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px;">
+            <div class="empty-state" style="grid-column: 1/-1;"><span>🎶</span>
+              <p>Aún no tienes listas.<br>¡Crea tu primera playlist!</p>
+            </div>
+          </div>
+          <!-- Vista detalle de una lista -->
+          <div id="playlist-detail" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <button class="btn-ghost" id="playlist-back-btn"
+                style="color: var(--txt-muted); background: transparent; border: 1px solid rgba(255,255,255,0.1); padding: 6px 16px; border-radius: 12px; cursor: pointer;">← Volver</button>
+              <h4 id="playlist-detail-name" style="flex:1; text-align:center; margin:0;"></h4>
+              <button class="btn-ghost" id="playlist-play-all-btn"
+                style="color: #10b981; background: transparent; border: 1px solid #10b981; padding: 6px 16px; border-radius: 12px; cursor: pointer; font-weight: 600;">▶ Reproducir</button>
+            </div>
+            <div id="playlist-songs-list" class="media-grid-layout numbered-grid">
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer" id="generos">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="footer-logo">TuZonaEC</div>
+        <p class="footer-slogan">La plataforma definitiva para descubrir, reproducir y descargar tu música favorita en
+          máxima calidad. Diseñada para los amantes de la música.</p>
+      </div>
+
+      <div class="footer-links">
+        <a href="#" onclick="event.preventDefault(); window.openInfoModal('terms')">Términos de Servicio</a>
+        <a href="#" onclick="event.preventDefault(); window.openInfoModal('privacy')">Política de Privacidad</a>
+        <a href="#" onclick="event.preventDefault(); window.openInfoModal('dmca')">Políticas de DMCA</a>
+        <a href="#" onclick="event.preventDefault(); window.openInfoModal('support')">Soporte Técnico</a>
+        <a href="#" onclick="event.preventDefault(); window.openFeedbackModal()"
+          style="color: var(--primary); font-weight: bold;">⭐ Calificar página</a>
+      </div>
+
+      <div class="footer-social">
+        <a href="https://www.facebook.com/gabrielmeroaragundi.95" target="_blank" class="social-btn" title="Facebook">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" stroke="none">
+            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+          </svg>
+        </a>
+        <a href="https://www.instagram.com/gabrieldarkwolf/" target="_blank" class="social-btn" title="Instagram">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+          </svg>
+        </a>
+        <a href="https://www.tiktok.com/@gabrielmerodj" target="_blank" class="social-btn" title="TikTok">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path>
+          </svg>
+        </a>
+        <a href="https://wa.me/593986528662" target="_blank" class="social-btn" title="WhatsApp">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z">
+            </path>
+          </svg>
+        </a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p style="margin-bottom: 5px;">Hecho con ❤️ en Ecuador 🇪🇨</p>
+      <p>© 2026 TuZona EC. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+
+  <div id="notification" class="notification"></div>
+  <!-- AUTH MODALS -->
+  <div id="auth-modal" class="modal">
+    <div class="modal-content auth-modal-content">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login">Entrar</button>
+        <button class="auth-tab" id="tab-register">Registro</button>
+      </div>
+
+      <form id="login-form" class="auth-form">
+        <div class="form-group">
+          <label>Usuario</label>
+          <input type="text" id="login-user" required>
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" id="login-pass" required>
+        </div>
+        <button type="submit" class="btn-primary full-width" id="btn-login-submit">Iniciar Sesión</button>
+      </form>
+
+      <form id="register-form" class="auth-form" style="display:none">
+        <div class="form-group">
+          <label>Nuevo Usuario</label>
+          <input type="text" id="reg-user" required>
+        </div>
+        <div class="form-group">
+          <label>Correo Electrónico</label>
+          <input type="email" id="reg-email" placeholder="ejemplo@gmail.com" required>
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" id="reg-pass" required>
+        </div>
+        <button type="submit" id="btn-register-submit" class="btn-primary full-width">Registrarse</button>
+      </form>
+
+      <div id="forgot-password-link" style="text-align: center; margin-top: 15px;">
+        <a href="#" style="color: var(--txt-muted); font-size: 0.85rem;" onclick="openForgotModal()">¿Olvidaste tu
+          contraseña?</a>
+      </div>
+
+      <button class="modal-close" onclick="closeAuthModal()">✕</button>
+    </div>
+  </div>
+
+  <!-- FEEDBACK MODAL -->
+  <div id="feedback-modal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>Calificar Plataforma</h3>
+        <button class="modal-close" onclick="window.closeFeedbackModal()">✕</button>
+      </div>
+      <p style="color: var(--txt-muted); font-size: 0.9rem; margin-bottom: 20px;">
+        <em>Tus comentarios son 100% anónimos. Los administradores no sabrán quién envió este mensaje.</em>
+      </p>
+
+      <div class="form-group" style="text-align: center; margin-bottom: 20px;">
+        <label>Tu calificación:</label>
+        <div class="star-rating" id="star-rating">
+          <span data-val="1">★</span><span data-val="2">★</span><span data-val="3">★</span><span
+            data-val="4">★</span><span data-val="5">★</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Comentarios o sugerencias (Opcional):</label>
+        <textarea id="feedback-comment" rows="4"
+          style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; padding: 10px;"
+          placeholder="¿Qué podemos mejorar?"></textarea>
+      </div>
+
+      <button id="btn-submit-feedback" class="btn-primary" style="width: 100%;" onclick="window.submitFeedback()">Enviar
+        Comentarios</button>
+    </div>
+  </div>
+
+  <!-- ADMIN MODAL -->
+  <div id="admin-modal" class="modal">
+    <div class="modal-content admin-modal-content">
+      <div class="modal-header">
+        <h3>Panel de Administración</h3>
+        <button class="modal-close" onclick="closeAdminModal()">✕</button>
+      </div>
+
+      <div class="admin-tabs"
+        style="display: flex; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; padding-bottom: 10px;">
+        <button class="admin-tab active" id="admin-tab-users"
+          style="background:none; border:none; color:var(--primary); font-weight:bold; cursor:pointer;"
+          onclick="window.switchAdminTab('users')">Usuarios</button>
+        <button class="admin-tab" id="admin-tab-feedback"
+          style="background:none; border:none; color:var(--txt-muted); font-weight:bold; cursor:pointer;"
+          onclick="window.switchAdminTab('feedback')">Sugerencias</button>
+      </div>
+
+      <!-- USUARIOS -->
+      <div id="admin-section-users" class="admin-table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Usuario</th>
+              <th>Admin</th>
+              <th>Verificado</th>
+              <th>Reproducciones</th>
+              <th>Descargas</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="admin-user-list">
+            <!-- Cargado vía JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- SUGERENCIAS -->
+      <div id="admin-section-feedback" class="admin-table-container hidden">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Usuario Real</th>
+              <th>Calificación</th>
+              <th>Comentario</th>
+              <th>Fecha</th>
+            </tr>
+          </thead>
+          <tbody id="admin-feedback-list">
+            <!-- Cargado vía JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- VERIFICATION MODAL -->
+  <div id="verification-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Verifica tu Cuenta</h3>
+        <button class="modal-close" onclick="closeVerificationModal()">✕</button>
+      </div>
+      <p style="color: var(--txt-muted); font-size: 0.9rem; margin-bottom: 20px;">
+        Hemos enviado un código de 6 dígitos a tu correo principal (revisa también la carpeta Spam).
+      </p>
+      <form id="verification-form">
+        <div class="form-group">
+          <label>Código de Verificación</label>
+          <input type="text" id="verify-code" placeholder="Ej: 123456" maxlength="6"
+            style="font-size:1.5rem; letter-spacing:8px; text-align:center; font-weight:bold;" required>
+        </div>
+        <button type="submit" class="btn-primary full-width" id="btn-verify-submit">Activar Cuenta</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- FORGOT PASSWORD MODAL -->
+  <div id="forgot-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Recuperar Contraseña</h3>
+        <button class="modal-close" onclick="closeForgotModal()">✕</button>
+      </div>
+      <p style="color: var(--txt-muted); font-size: 0.9rem; margin-bottom: 20px;">Escribe tu correo y te enviaremos un enlace seguro para restablecer tu contraseña.</p>
+      <form id="forgot-form">
+        <div class="form-group">
+          <label>Correo Electrónico</label>
+          <input type="email" id="forgot-email" required>
+        </div>
+        
+        <div class="form-group" style="text-align: center;">
+          <label>Resuelve el Captcha</label>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <img id="captcha-img" src="" alt="Captcha" style="border-radius: 8px; border: 1px solid var(--a2); min-height: 90px; width: 280px; background: #fff;">
+            <button type="button" class="btn-secondary" onclick="window.loadCaptcha()" style="font-size: 0.8rem; padding: 5px 10px;">↻ Recargar Captcha</button>
+          </div>
+          <input type="hidden" id="captcha-id">
+          <input type="text" id="captcha-code" placeholder="Escribe los números de la imagen" required style="text-align: center; font-size: 1.2rem; letter-spacing: 4px;">
+        </div>
+
+        <button type="submit" class="btn-primary full-width" id="btn-forgot-submit">Enviar Enlace</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- RESET PASSWORD MODAL -->
+  <div id="reset-modal" class="modal" style="z-index: 2500;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Restablecer Contraseña</h3>
+        <button class="modal-close" onclick="closeResetModal()">✕</button>
+      </div>
+      <p style="color: var(--txt-muted); font-size: 0.9rem; margin-bottom: 20px;">Ingresa tu nueva contraseña para acceder a tu cuenta.</p>
+      <form id="reset-form">
+        <div class="form-group">
+          <label>Nueva Contraseña</label>
+          <input type="password" id="reset-pass" required>
+        </div>
+        <div class="form-group">
+          <label>Confirmar Nueva Contraseña</label>
+          <input type="password" id="reset-pass-confirm" required>
+        </div>
+        <button type="submit" class="btn-primary full-width">Cambiar Contraseña</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- INFO MODAL (Términos, Privacidad, etc) -->
+  <div id="info-modal" class="modal">
+    <div class="modal-content" style="max-width: 800px; text-align: left;">
+      <div class="modal-header">
+        <h3 id="info-modal-title" style="font-size: 1.5rem;">Información</h3>
+        <button class="modal-close" onclick="window.closeInfoModal()">✕</button>
+      </div>
+      <div id="info-modal-body"
+        style="padding: 20px 0; color: var(--txt-muted); line-height: 1.6; max-height: 60vh; overflow-y: auto;">
+        <!-- Contenido dinámico -->
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS MODAL -->
+  <div id="success-modal" class="modal" style="z-index: 3000;">
+    <div class="modal-content" style="text-align: center; padding: 40px 20px; max-width: 450px;">
+      <div id="success-icon" style="font-size: 4rem; color: #10b981; margin-bottom: 20px; text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);">
+        ✓</div>
+      <h3 id="success-title" style="margin-bottom: 15px; font-size: 1.5rem;">¡Operación Exitosa!</h3>
+      <p id="success-message" style="color: var(--txt-muted); font-size: 1.1rem; line-height: 1.5;"></p>
+      <button class="btn-primary" style="margin-top: 20px; padding: 10px 30px;" onclick="document.getElementById('success-modal').classList.remove('active')">Entendido</button>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=37"></script>
+</body>
+
+</html>

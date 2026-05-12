@@ -1204,7 +1204,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPlayingIndex = index;
         const video = currentPlaylist[index];
 
-        playerTitle.textContent = video.title + ' (Buscando...)';
+        playerTitle.textContent = video.title + ' (Iniciando...)';
         if (playerChannel) playerChannel.textContent = video.channel || '';
         if (playerThumb) {
             if (video.thumbnail) playerThumb.innerHTML = `<img src="${video.thumbnail}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
@@ -1214,41 +1214,37 @@ document.addEventListener('DOMContentLoaded', () => {
         const playerBar = document.getElementById('player-bar');
         if (playerBar) playerBar.classList.remove('hidden');
 
-        // ACTIVACIÓN INSTANTÁNEA PARA PERMISO DE AUDIO
-        activeEngine = 'audio';
-        mainAudio.src = SILENT_MP3;
-        mainAudio.play().catch(() => {});
+        // PLAN A: Preparar YouTube de inmediato (es lo más fiable)
+        activeEngine = 'youtube';
+        if (ytPlayer && ytPlayer.loadVideoById) {
+            ytPlayer.loadVideoById({ videoId: video.id, suggestedQuality: 'small' });
+        }
 
+        // PLAN B: Intentar buscar audio directo para segundo plano (solo si es rápido)
         try {
-            if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
-
-            // TEMPORIZADOR DE SEGURIDAD (4 segundos)
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 4000);
+            const timeoutId = setTimeout(() => controller.abort(), 2500); // Solo damos 2.5 segundos
 
             const nodes = [
                 `https://api.allorigins.win/get?url=${encodeURIComponent('https://inv.tux.pizza/api/v1/videos/' + video.id)}`,
-                `https://api.allorigins.win/get?url=${encodeURIComponent('https://vid.puffyan.us/api/v1/videos/' + video.id)}`,
                 `https://api.allorigins.win/get?url=${encodeURIComponent('https://pipedapi.kavin.rocks/streams/' + video.id)}`
             ];
 
             const streamUrl = await Promise.any(nodes.map(url => 
                 fetch(url, { signal: controller.signal }).then(r => r.json()).then(data => {
                     const contents = JSON.parse(data.contents);
-                    if (contents.adaptiveFormats) {
-                        const audio = contents.adaptiveFormats.find(f => f.type.includes('audio'));
-                        if (audio) return audio.url;
-                    }
-                    if (contents.audioStreams) {
-                        return contents.audioStreams.sort((a,b) => b.bitrate - a.bitrate)[0].url;
-                    }
-                    throw new Error("No found");
+                    if (contents.adaptiveFormats) return contents.adaptiveFormats.find(f => f.type.includes('audio')).url;
+                    if (contents.audioStreams) return contents.audioStreams.sort((a,b) => b.bitrate - a.bitrate)[0].url;
+                    throw new Error();
                 })
             )).catch(() => null);
 
             clearTimeout(timeoutId);
 
             if (streamUrl) {
+                // Si encontramos el audio rápido, apagamos YouTube y usamos el audio directo
+                if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
+                activeEngine = 'audio';
                 mainAudio.src = streamUrl;
                 mainAudio.play().then(() => {
                     playerTitle.textContent = video.title;
@@ -1256,10 +1252,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (window.addToHistory) window.addToHistory(video);
                 }).catch(() => useYTFallback(video));
             } else {
-                useYTFallback(video);
+                // Si no se encontró a tiempo, YouTube ya está cargando/reproduciendo
+                playerTitle.textContent = video.title;
+                setupMediaSession(video);
+                if (window.addToHistory) window.addToHistory(video);
             }
         } catch (err) {
-            useYTFallback(video);
+            // Cualquier error, nos quedamos con YouTube que ya arrancó arriba
+            playerTitle.textContent = video.title;
         }
     }
 

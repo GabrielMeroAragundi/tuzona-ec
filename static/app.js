@@ -1144,7 +1144,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Intentar con la fuente actual (0, 1 o 2)
             const activeSource = String(sourceIndex); 
-            mainAudio.src = `/api/stream?id=${video.id}&source=${activeSource}`;
+            const streamUrl = `/api/stream?id=${video.id}&source=${activeSource}`;
+            
+            mainAudio.src = streamUrl;
             mainAudio.load(); 
             
             setTimeout(() => {
@@ -1153,8 +1155,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     iconPlay.style.display = 'none';
                     iconPause.style.display = 'block';
                     if (window.addToHistory) window.addToHistory(video);
-                }).catch((e) => {
+                }).catch(async (e) => {
                     console.error(`Error en fuente ${sourceIndex}:`, e);
+                    
+                    // --- PLAN B: EXTRACCIÓN DESDE EL NAVEGADOR (IP DEL USUARIO) ---
+                    if (sourceIndex === 0) {
+                        console.log("Intentando extracción directa desde el navegador...");
+                        try {
+                            const res = await fetch(`https://yt-api.com/api/video/info?id=${video.id}`);
+                            const data = await res.json();
+                            const formats = data.data?.adaptiveFormats || [];
+                            const audio = formats.find(f => f.type?.includes('audio'));
+                            if (audio && audio.url) {
+                                mainAudio.src = audio.url;
+                                mainAudio.play();
+                                playerTitle.textContent = video.title;
+                                return;
+                            }
+                        } catch (clientErr) {
+                            console.error("Error en extracción directa:", clientErr);
+                        }
+                    }
+
                     if (sourceIndex < sources.length - 1) {
                         playTrack(index, sourceIndex + 1);
                     } else {

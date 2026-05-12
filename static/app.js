@@ -1102,13 +1102,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 mainAudio.play().catch(() => {});
             }
         } else if (event.data === YT.PlayerState.PAUSED) {
-            // Solo pausar visualmente si el usuario lo hizo queriendo (web visible)
             if (document.visibilityState === 'visible') {
                 iconPlay.style.display = 'block';
                 iconPause.style.display = 'none';
                 stopProgressTimer();
-                mainAudio.pause();
+                if (mainAudio) mainAudio.pause();
             }
+        }
+    }
+
+    // --- VARIABLES DE CONTROL GLOBALES ---
+    let activeEngine = 'youtube'; 
+    const SILENT_MP3 = "data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP8A/wD/";
+    window.mainAudio = document.getElementById('main-audio-element');
+    if (mainAudio) mainAudio.loop = true;
+
+    let wakeLock = null;
+    async function requestWakeLock() {
+        try {
+            if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+        } catch (err) {}
+    }
+
+    function useYTFallback(video) {
+        activeEngine = 'youtube';
+        if (ytPlayer && ytPlayer.loadVideoById) {
+            ytPlayer.loadVideoById(video.id);
+            playerTitle.textContent = video.title;
+            setupMediaSession(video);
         }
     }
 
@@ -1218,26 +1239,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const playerBar = document.getElementById('player-bar');
         if (playerBar) playerBar.classList.remove('hidden');
 
-        // ACTIVAR BLOQUEO DE SUSPENSIÓN
         requestWakeLock();
-
-        // MOTOR OFICIAL DE YOUTUBE (Estabilidad Total)
         activeEngine = 'youtube';
+
         try {
             if (ytPlayer && ytPlayer.loadVideoById) {
-                ytPlayer.loadVideoById({
-                    videoId: video.id,
-                    suggestedQuality: 'small'
-                });
+                ytPlayer.loadVideoById({ videoId: video.id, suggestedQuality: 'small' });
                 playerTitle.textContent = video.title;
                 setupMediaSession(video);
                 if (window.addToHistory) window.addToHistory(video);
             } else {
-                // Si el reproductor no está listo, reintenta en un segundo
                 setTimeout(() => playTrack(index), 1000);
             }
         } catch (err) {
-            console.error("Error al cargar canción:", err);
+            console.error("Error:", err);
         }
     }
 
@@ -1246,30 +1261,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPlaylist.push(video);
         playTrack(currentPlaylist.length - 1);
     };
-
-    let activeEngine = 'youtube'; 
-    const SILENT_MP3 = "data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP8A/wD/";
-    window.mainAudio = document.getElementById('main-audio-element');
-    if (mainAudio) mainAudio.loop = true;
-
-    // --- BLOQUEO DE SUSPENSIÓN (WAKE LOCK) ---
-    let wakeLock = null;
-    async function requestWakeLock() {
-        try {
-            if ('wakeLock' in navigator) {
-                wakeLock = await navigator.wakeLock.request('screen');
-            }
-        } catch (err) {}
-    }
-
-    function useYTFallback(video) {
-        activeEngine = 'youtube';
-        if (ytPlayer && ytPlayer.loadVideoById) {
-            ytPlayer.loadVideoById(video.id);
-            playerTitle.textContent = video.title;
-            setupMediaSession(video);
-        }
-    }
 
     btnPlay.addEventListener('click', () => {
         if (activeEngine === 'audio') {

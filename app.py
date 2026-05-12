@@ -332,12 +332,17 @@ def stream_audio():
     try:
         if not url:
             if source_type == '0':
-                # Fuente 0: Android VR (pytubefix)
+                # Fuente 0: YouTube Music Client (Alta fidelidad)
                 try:
-                    yt = YouTube(f"https://www.youtube.com/watch?v={video_id}", client='ANDROID_VR')
+                    yt = YouTube(f"https://music.youtube.com/watch?v={video_id}", client='YTMUSIC')
                     url = yt.streams.filter(only_audio=True).first().url
                 except Exception as e:
-                    print(f"Error VR: {e}")
+                    print(f"Error YTMUSIC: {e}")
+                    # Si falla, intentar como VR normal
+                    try:
+                        yt = YouTube(f"https://www.youtube.com/watch?v={video_id}", client='ANDROID_VR')
+                        url = yt.streams.filter(only_audio=True).first().url
+                    except: pass
 
             elif source_type == '1':
                 # Fuente 1: API Externa (yt-api.com)

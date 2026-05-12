@@ -326,8 +326,11 @@ def stream_audio():
                 'quiet': True,
                 'extract_flat': False,
                 'force_generic_extractor': False,
-                'extractor_args': {'youtube': ['player_client=ios,web']},
-                'user_agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1'
+                'extractor_args': {'youtube': ['player_client=mweb,web', 'player_skip=webpage,configs']},
+                'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
+                'nocheckcertificate': True,
+                'quiet': True,
+                'no_warnings': True
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
@@ -415,8 +418,11 @@ def download_videos():
                 'quiet': True,
                 'no_warnings': True,
                 'noprogress': True,
-                'extractor_args': {'youtube': ['player_client=ios,web']},
-                'user_agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1'
+                'extractor_args': {'youtube': ['player_client=mweb,web', 'player_skip=webpage,configs']},
+                'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
+                'nocheckcertificate': True,
+                'quiet': True,
+                'no_warnings': True
             }
         else:
             ydl_opts = {
@@ -431,8 +437,11 @@ def download_videos():
                 'quiet': True,
                 'no_warnings': True,
                 'noprogress': False,
-                'extractor_args': {'youtube': ['player_client=ios,web']},
-                'user_agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1'
+                'extractor_args': {'youtube': ['player_client=mweb,web', 'player_skip=webpage,configs']},
+                'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
+                'nocheckcertificate': True,
+                'quiet': True,
+                'no_warnings': True
             }
 
         try:

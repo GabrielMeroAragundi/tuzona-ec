@@ -711,7 +711,12 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=40"></script>
+  <!-- YouTube IFrame API (Para reproducción 100% estable) -->
+  <div id="yt-player-container" style="position: absolute; top: -9999px; left: -9999px; width: 1px; height: 1px; overflow: hidden; pointer-events: none;">
+      <div id="yt-handler"></div>
+  </div>
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="/static/app.js?v=41"></script>
 </body>
 
 </html>

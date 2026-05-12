@@ -1212,29 +1212,22 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
 
-            const nodes = [
-                "https://pipedapi.kavin.rocks/streams/",
-                "https://api.piped.mha.fi/streams/"
-            ];
+            // Un solo intento ultra-rápido (3 seg)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
             
             let streamUrl = null;
-            // Timeout de seguridad: Si en 5s no hay link, abortamos al Plan B
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-            for (let node of nodes) {
-                try {
-                    const proxyUrl = "https://api.allorigins.win/get?url=";
-                    const targetUrl = encodeURIComponent(node + video.id);
-                    const resp = await fetch(proxyUrl + targetUrl, { signal: controller.signal });
-                    const data = await resp.json();
-                    const pipedData = JSON.parse(data.contents);
-                    if (pipedData.audioStreams && pipedData.audioStreams.length > 0) {
-                        streamUrl = pipedData.audioStreams.sort((a,b) => b.bitrate - a.bitrate)[0].url;
-                        break;
-                    }
-                } catch(e) { continue; }
-            }
+            try {
+                const node = "https://pipedapi.kavin.rocks/streams/";
+                const proxyUrl = "https://api.allorigins.win/get?url=";
+                const resp = await fetch(proxyUrl + encodeURIComponent(node + video.id), { signal: controller.signal });
+                const data = await resp.json();
+                const pipedData = JSON.parse(data.contents);
+                if (pipedData.audioStreams && pipedData.audioStreams.length > 0) {
+                    streamUrl = pipedData.audioStreams.sort((a,b) => b.bitrate - a.bitrate)[0].url;
+                }
+            } catch(e) { console.log("Extracción rápida falló"); }
+            
             clearTimeout(timeoutId);
 
             if (streamUrl) {

@@ -1142,8 +1142,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (msErr) {}
             }
 
-            // Intentar con la fuente actual
-            mainAudio.src = `/api/stream?id=${video.id}&source=${sources[sourceIndex]}`;
+            // Intentar con la fuente actual (0, 1 o 2)
+            const activeSource = String(sourceIndex); 
+            mainAudio.src = `/api/stream?id=${video.id}&source=${activeSource}`;
             mainAudio.load(); 
             
             setTimeout(() => {

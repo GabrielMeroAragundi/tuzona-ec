@@ -327,49 +327,54 @@ def stream_audio():
     import httpx
     import requests
     from pytubefix import YouTube
-    source_type = request.args.get('source', '0') # 0: VR, 1: External, 2: Piped
+    source_type = str(request.args.get('source', '0'))[0] # Tomar solo el primer carácter por seguridad
     
     try:
         if not url:
             if source_type == '0':
-                # Fuente 0: YouTube Music Client (Alta fidelidad)
+                # Fuente 0: YouTube Music / VR
                 try:
                     yt = YouTube(f"https://music.youtube.com/watch?v={video_id}", client='YTMUSIC')
                     url = yt.streams.filter(only_audio=True).first().url
-                except Exception as e:
-                    print(f"Error YTMUSIC: {e}")
-                    # Si falla, intentar como VR normal
+                except:
                     try:
                         yt = YouTube(f"https://www.youtube.com/watch?v={video_id}", client='ANDROID_VR')
                         url = yt.streams.filter(only_audio=True).first().url
                     except: pass
 
             elif source_type == '1':
-                # Fuente 1: API Externa (yt-api.com)
+                # Fuente 1: API Externa
                 try:
                     api_resp = requests.get(f"https://yt-api.com/api/video/info?id={video_id}", timeout=5)
                     if api_resp.status_code == 200:
                         formats = api_resp.json().get('data', {}).get('adaptiveFormats', [])
                         audio = [f for f in formats if 'audio' in f.get('type', '')]
                         if audio: url = audio[0].get('url')
-                except Exception as e:
-                    print(f"Error Externa: {e}")
+                except: pass
 
             elif source_type == '2':
-                # Fuente 2: Piped API (Instancias rotativas)
-                piped_instances = [
-                    "https://pipedapi.kavin.rocks",
-                    "https://pipedapi.lunar.icu",
-                    "https://api-piped.mha.fi"
+                # Fuente 2: Piped / Invidious (Instancias rotativas)
+                nodes = [
+                    "https://pipedapi.kavin.rocks/streams/",
+                    "https://pipedapi.lunar.icu/streams/",
+                    "https://invidious.sethforprivacy.com/api/v1/videos/",
+                    "https://invidious.snopyta.org/api/v1/videos/"
                 ]
-                for instance in piped_instances:
+                for node in nodes:
                     try:
-                        resp_p = requests.get(f"{instance}/streams/{video_id}", timeout=4)
-                        if resp_p.status_code == 200:
-                            streams = resp_p.json().get('audioStreams', [])
-                            if streams:
-                                url = streams[0].get('url')
+                        resp = requests.get(f"{node}{video_id}", timeout=4)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            # Caso Piped
+                            if 'audioStreams' in data:
+                                url = data['audioStreams'][0].get('url')
                                 break
+                            # Caso Invidious
+                            elif 'adaptiveFormats' in data:
+                                audio = [f for f in data['adaptiveFormats'] if 'audio' in f.get('type', '')]
+                                if audio:
+                                    url = audio[0].get('url')
+                                    break
                     except: continue
 
             if not url:

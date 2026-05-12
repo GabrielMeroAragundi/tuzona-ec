@@ -332,40 +332,40 @@ def stream_audio():
             return redirect(cache_data['url'])
 
     import requests
-    from pytubefix import YouTube
-
-    # Orden de intentos internos (Silenciosos)
+    
+    # Orden de intentos internos (Súper Motor Europeo)
     def try_extract():
-        # 1. YouTube Music (Modo más estable)
-        try:
-            yt = YouTube(f"https://music.youtube.com/watch?v={video_id}", client='YTMUSIC')
-            u = yt.streams.filter(only_audio=True).first().url
-            if u: return u
-        except: pass
-
-        # 2. Piped & Invidious (Nodos rotativos)
+        # Lista de nodos ultra-estables (Finlandia, Alemania, etc.)
         nodes = [
-            f"https://pipedapi.kavin.rocks/streams/{video_id}",
-            f"https://api.allorigins.win/raw?url=https://yt-api.com/api/video/info?id={video_id}",
-            f"https://invidious.sethforprivacy.com/api/v1/videos/{video_id}"
+            f"https://api-piped.mha.fi/streams/{video_id}",
+            f"https://pipedapi.lunar.icu/streams/{video_id}",
+            f"https://pipedapi.astre.me/streams/{video_id}",
+            f"https://yt.artemislena.eu/api/v1/videos/{video_id}"
         ]
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            'Accept': 'application/json'
+        }
+
         for node in nodes:
             try:
-                resp = requests.get(node, timeout=3)
+                print(f"Intentando nodo: {node}")
+                resp = requests.get(node, headers=headers, timeout=4)
                 if resp.status_code == 200:
                     d = resp.json()
                     # Caso Piped
-                    if 'audioStreams' in d: return d['audioStreams'][0]['url']
-                    # Caso yt-api (vía allorigins)
-                    if 'data' in d:
-                        formats = d['data'].get('adaptiveFormats', [])
-                        audio = [f for f in formats if 'audio' in f.get('type', '')]
-                        if audio: return audio[0]['url']
-                    # Caso Invidious
+                    if 'audioStreams' in d and len(d['audioStreams']) > 0:
+                        # Ordenar por calidad y tomar la mejor
+                        streams = sorted(d['audioStreams'], key=lambda x: x.get('bitrate', 0), reverse=True)
+                        return streams[0]['url']
+                    # Caso Invidious (Artemis)
                     if 'adaptiveFormats' in d:
                         audio = [f for f in d['adaptiveFormats'] if 'audio' in f.get('type', '')]
                         if audio: return audio[0]['url']
-            except: continue
+            except Exception as e:
+                print(f"Fallo en nodo {node}: {e}")
+                continue
         return None
 
     final_url = try_extract()

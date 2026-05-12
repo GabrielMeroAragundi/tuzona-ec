@@ -1101,7 +1101,35 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("YouTube Player listo.");
     }
 
-    // --- SOPORTE PWA Y MEDIA SESSION ---
+    // --- LÓGICA DE INSTALACIÓN PWA ---
+    let deferredPrompt;
+    const btnInstallPwa = document.getElementById('btn-install-pwa');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Evitar que el navegador muestre el aviso automático
+        e.preventDefault();
+        deferredPrompt = e;
+        // Mostrar nuestro botón personalizado
+        if (btnInstallPwa) btnInstallPwa.style.display = 'block';
+    });
+
+    if (btnInstallPwa) {
+        btnInstallPwa.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            // Mostrar el prompt de instalación
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`Usuario eligió: ${outcome}`);
+            // Limpiar la variable y ocultar el botón
+            deferredPrompt = null;
+            btnInstallPwa.style.display = 'none';
+        });
+    }
+
+    window.addEventListener('appinstalled', () => {
+        console.log('TuZona EC instalada con éxito');
+        if (btnInstallPwa) btnInstallPwa.style.display = 'none';
+    });
     const mainAudio = document.createElement('audio');
     mainAudio.loop = true;
     const SILENT_MP3 = "data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP8A/wD/";

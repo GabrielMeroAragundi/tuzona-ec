@@ -9,7 +9,11 @@ import time
 from io import BytesIO
 from datetime import datetime
 from flask import Flask, request, jsonify, send_file, render_template, Response
-from flask_cors import CORS
+try:
+    from flask_cors import CORS
+except ImportError:
+    CORS = None
+    print("Aviso: flask_cors no encontrado, continuando sin CORS")
 import yt_dlp
 import imageio_ffmpeg
 from youtubesearchpython import VideosSearch, ChannelsSearch, PlaylistsSearch, Search
@@ -38,7 +42,8 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-CORS(app, expose_headers=['Content-Disposition'])
+if CORS:
+    CORS(app, expose_headers=['Content-Disposition'])
 
 # Modelos
 class User(UserMixin, db.Model):

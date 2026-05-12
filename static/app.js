@@ -1148,45 +1148,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 title: video.title,
                 artist: video.channel || 'TuZona EC',
                 artwork: [
-                    { src: video.thumbnail || '/static/favicon.png', sizes: '96x96',   type: 'image/png' },
-                    { src: video.thumbnail || '/static/favicon.png', sizes: '128x128', type: 'image/png' },
                     { src: video.thumbnail || '/static/favicon.png', sizes: '512x512', type: 'image/png' }
                 ]
             });
             
-            // PANEL DE CONTROL COMPLETO (Pantalla de bloqueo)
-            navigator.mediaSession.setActionHandler('play', () => { if(ytPlayer) ytPlayer.playVideo(); });
-            navigator.mediaSession.setActionHandler('pause', () => { if(ytPlayer) ytPlayer.pauseVideo(); });
-            navigator.mediaSession.setActionHandler('previoustrack', () => { if(btnPrev) btnPrev.click(); });
-            navigator.mediaSession.setActionHandler('nexttrack', () => { if(btnNext) btnNext.click(); });
-            
-            // Intentar habilitar Repetir y Aleatorio si el navegador lo permite
-            try {
-                navigator.mediaSession.setActionHandler('seekbackward', () => { if(ytPlayer) ytPlayer.seekTo(ytPlayer.getCurrentTime() - 10); });
-                navigator.mediaSession.setActionHandler('seekforward', () => { if(ytPlayer) ytPlayer.seekTo(ytPlayer.getCurrentTime() + 10); });
-            } catch(e) {}
+            // Forzar estado "reproduciendo" para que el móvil no lo pause
+            navigator.mediaSession.playbackState = 'playing';
+
+            // Configurar todos los botones obligatorios
+            const actions = [
+                ['play', () => { if(ytPlayer) ytPlayer.playVideo(); }],
+                ['pause', () => { if(ytPlayer) ytPlayer.pauseVideo(); }],
+                ['previoustrack', () => { if(btnPrev) btnPrev.click(); }],
+                ['nexttrack', () => { if(btnNext) btnNext.click(); }],
+                ['seekbackward', () => { if(ytPlayer) ytPlayer.seekTo(ytPlayer.getCurrentTime() - 10); }],
+                ['seekforward', () => { if(ytPlayer) ytPlayer.seekTo(ytPlayer.getCurrentTime() + 10); }]
+            ];
+
+            actions.forEach(([action, handler]) => {
+                try { navigator.mediaSession.setActionHandler(action, handler); } catch(e) {}
+            });
         }
     }
 
-    // --- VIGILANTE DE SEGUNDO PLANO ---
-    // Este "perro guardián" se asegura de que si el móvil pausa la música al salir,
-    // nosotros la reanudamos automáticamente sin que tengas que tocar nada.
-    let backgroundWatchdog = null;
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
-            backgroundWatchdog = setInterval(() => {
-                if (ytPlayer && ytPlayer.getPlayerState) {
-                    const state = ytPlayer.getPlayerState();
-                    // Si está pausado pero debería estar sonando... ¡Fuerza el Play!
-                    if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.BUFFERING) {
+    // --- REANUDACIÓN AGRESIVA (NIVEL 2) ---
+    // Usamos múltiples eventos para capturar el momento exacto del bloqueo
+    ['visibilitychange', 'pagehide', 'blur'].forEach(evt => {
+        document.addEventListener(evt, () => {
+            if (ytPlayer && ytPlayer.getPlayerState) {
+                const state = ytPlayer.getPlayerState();
+                if (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING) {
+                    // El truco definitivo: Un bucle rápido de re-intento
+                    let attempts = 0;
+                    const interval = setInterval(() => {
+                        if (attempts > 5) clearInterval(interval);
                         ytPlayer.playVideo();
                         if (mainAudio.paused) mainAudio.play().catch(() => {});
-                    }
+                        attempts++;
+                    }, 300);
                 }
-            }, 1000); // Revisa cada segundo
-        } else {
-            if (backgroundWatchdog) clearInterval(backgroundWatchdog);
-        }
+            }
+        });
     });
 
     function stopProgressTimer() {

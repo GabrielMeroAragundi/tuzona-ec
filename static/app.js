@@ -1101,22 +1101,44 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("YouTube Player listo.");
     }
 
+    // --- SOPORTE PWA Y MEDIA SESSION ---
+    const mainAudio = document.createElement('audio');
+    mainAudio.loop = true;
+    const SILENT_MP3 = "data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP8A/wD/";
+    
+    function setupMediaSession(video) {
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: video.title,
+                artist: video.channel || 'TuZona EC',
+                artwork: [{ src: video.thumbnail || '/static/favicon.png', sizes: '512x512', type: 'image/png' }]
+            });
+            
+            navigator.mediaSession.setActionHandler('play', () => { if(ytPlayer) ytPlayer.playVideo(); });
+            navigator.mediaSession.setActionHandler('pause', () => { if(ytPlayer) ytPlayer.pauseVideo(); });
+            navigator.mediaSession.setActionHandler('previoustrack', () => btnPrev.click());
+            navigator.mediaSession.setActionHandler('nexttrack', () => btnNext.click());
+        }
+    }
+
+    // Modificamos el evento de cambio de estado del reproductor
     function onPlayerStateChange(event) {
         if (event.data === YT.PlayerState.ENDED) {
-            // Siguiente canción automáticamente
-            if (currentPlayingIndex < currentPlaylist.length - 1) {
-                playTrack(currentPlayingIndex + 1);
-            }
+            if (currentPlayingIndex < currentPlaylist.length - 1) playTrack(currentPlayingIndex + 1);
         }
         
         if (event.data === YT.PlayerState.PLAYING) {
             iconPlay.style.display = 'none';
             iconPause.style.display = 'block';
             startProgressTimer();
+            // Truco PWA: Reproducir silencio de fondo
+            mainAudio.src = SILENT_MP3;
+            mainAudio.play().catch(() => {});
         } else {
             iconPlay.style.display = 'block';
             iconPause.style.display = 'none';
             stopProgressTimer();
+            mainAudio.pause();
         }
     }
 
@@ -1178,6 +1200,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (ytPlayer && ytPlayer.loadVideoById) {
                 ytPlayer.loadVideoById(video.id);
                 playerTitle.textContent = video.title;
+                setupMediaSession(video);
                 if (window.addToHistory) window.addToHistory(video);
             } else {
                 showNotification("El reproductor aún se está cargando, espera un segundo...", true);

@@ -9,6 +9,18 @@
     content="Reproduce y descarga música de YouTube en 320kbps. La plataforma musical del Ecuador.">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
     rel="stylesheet">
+  <meta name="theme-color" content="#9d4edd">
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="apple-touch-icon" href="/static/favicon.png">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/static/sw.js')
+          .then(reg => console.log('PWA activo'))
+          .catch(err => console.log('Error PWA', err));
+      });
+    }
+  </script>
   <link rel="icon" type="image/png" href="/static/favicon.png?v=4">
   <link rel="stylesheet" href="/static/style.css?v=17">
 </head>

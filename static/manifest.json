@@ -1,0 +1,21 @@
+{
+  "name": "TuZona EC - Música Premium",
+  "short_name": "TuZona EC",
+  "description": "Tu plataforma de música ecuatoriana y éxitos mundiales.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0b",
+  "theme_color": "#9d4edd",
+  "icons": [
+    {
+      "src": "/static/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

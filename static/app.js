@@ -1098,11 +1098,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${m}:${sec < 10 ? '0' : ''}${sec}`;
     }
 
-    async function playTrack(index, sourceIndex = 0) {
+    async function playTrack(index, sourceIndexInput = 0) {
+        const sourceIndex = parseInt(sourceIndexInput);
         if (index < 0 || index >= currentPlaylist.length) return;
         currentPlayingIndex = index;
         const video = currentPlaylist[index];
-        const sources = ['0', '1', '2']; // Corresponden a VR, Externa, Piped
+        const sources = ['0', '1', '2']; 
 
         if (sourceIndex === 0) {
             playerTitle.textContent = video.title + ' (Conectando...)';
@@ -1112,19 +1113,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 else playerThumb.textContent = '🎵';
             }
         } else {
-            playerTitle.textContent = video.title + ` (Reintentando servidor ${sourceIndex + 1}/3...)`;
+            playerTitle.textContent = video.title + ` (Servidor ${sourceIndex + 1}/3...)`;
         }
         
         iconPlay.style.display = 'none';
         iconPause.style.display = 'block';
-        
-        if (btnFav) {
-            const isFav = typeof window.isFavorite === 'function' ? window.isFavorite(video.id) : (function(){ try { return JSON.parse(localStorage.getItem('tzFavs') || '[]').some(v => v.id === video.id); } catch { return false; } })();
-            btnFav.style.color = isFav ? 'var(--primary)' : '';
-            btnFav.innerHTML = isFav ? 
-                '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>' :
-                '<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>';
-        }
 
         const playerBar = document.getElementById('player-bar');
         if (playerBar) playerBar.classList.remove('hidden');
@@ -1132,21 +1125,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             if (sourceIndex === 0 && !mainAudio.paused) mainAudio.pause();
 
-            if ('mediaSession' in navigator) {
-                try {
-                    navigator.mediaSession.metadata = new MediaMetadata({
-                        title: video.title,
-                        artist: video.channel || 'TuZona EC',
-                        artwork: [{ src: video.thumbnail || '/static/favicon.png', sizes: '512x512', type: 'image/jpeg' }]
-                    });
-                } catch (msErr) {}
-            }
-
-            // Intentar con la fuente actual (0, 1 o 2)
-            const activeSource = String(sourceIndex); 
-            const streamUrl = `/api/stream?id=${video.id}&source=${activeSource}`;
-            
-            mainAudio.src = streamUrl;
+            // Intentar con la fuente actual
+            const urlFinal = `/api/stream?id=${video.id}&source=${sourceIndex}`;
+            mainAudio.src = urlFinal;
             mainAudio.load(); 
             
             setTimeout(() => {

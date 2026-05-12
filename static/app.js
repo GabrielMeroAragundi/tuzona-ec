@@ -1152,43 +1152,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 ]
             });
             
-            // Forzar estado "reproduciendo" para que el móvil no lo pause
-            navigator.mediaSession.playbackState = 'playing';
-
-            // Configurar todos los botones obligatorios
-            const actions = [
-                ['play', () => { if(ytPlayer) ytPlayer.playVideo(); }],
-                ['pause', () => { if(ytPlayer) ytPlayer.pauseVideo(); }],
-                ['previoustrack', () => { if(btnPrev) btnPrev.click(); }],
-                ['nexttrack', () => { if(btnNext) btnNext.click(); }],
-                ['seekbackward', () => { if(ytPlayer) ytPlayer.seekTo(ytPlayer.getCurrentTime() - 10); }],
-                ['seekforward', () => { if(ytPlayer) ytPlayer.seekTo(ytPlayer.getCurrentTime() + 10); }]
-            ];
-
-            actions.forEach(([action, handler]) => {
-                try { navigator.mediaSession.setActionHandler(action, handler); } catch(e) {}
-            });
+            // PANEL DE CONTROL COMPLETO
+            navigator.mediaSession.setActionHandler('play', () => { if(ytPlayer) ytPlayer.playVideo(); });
+            navigator.mediaSession.setActionHandler('pause', () => { if(ytPlayer) ytPlayer.pauseVideo(); });
+            navigator.mediaSession.setActionHandler('previoustrack', () => { if(btnPrev) btnPrev.click(); });
+            navigator.mediaSession.setActionHandler('nexttrack', () => { if(btnNext) btnNext.click(); });
         }
     }
 
-    // --- REANUDACIÓN AGRESIVA (NIVEL 2) ---
-    // Usamos múltiples eventos para capturar el momento exacto del bloqueo
-    ['visibilitychange', 'pagehide', 'blur'].forEach(evt => {
-        document.addEventListener(evt, () => {
-            if (ytPlayer && ytPlayer.getPlayerState) {
-                const state = ytPlayer.getPlayerState();
-                if (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING) {
-                    // El truco definitivo: Un bucle rápido de re-intento
-                    let attempts = 0;
-                    const interval = setInterval(() => {
-                        if (attempts > 5) clearInterval(interval);
+    // --- MOTOR DE PERSISTENCIA (WATCHDOG) ---
+    // Este sistema evita que el móvil duerma el proceso de YouTube
+    let watchdogTimer = null;
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            // Cuando la web se oculta, empezamos a vigilar cada 500ms
+            watchdogTimer = setInterval(() => {
+                if (ytPlayer && ytPlayer.getPlayerState) {
+                    const state = ytPlayer.getPlayerState();
+                    // Si YouTube se pausa solo por estar de fondo, forzamos el Play
+                    if (state === YT.PlayerState.PAUSED) {
                         ytPlayer.playVideo();
+                        // Mantenemos el audio silencioso vivo para que el canal no se cierre
                         if (mainAudio.paused) mainAudio.play().catch(() => {});
-                        attempts++;
-                    }, 300);
+                    }
                 }
-            }
-        });
+            }, 500);
+        } else {
+            if (watchdogTimer) clearInterval(watchdogTimer);
+        }
     });
 
     function stopProgressTimer() {

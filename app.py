@@ -322,28 +322,16 @@ def stream_audio():
 
     try:
         if not url:
-            try:
-                # Intento vía Instancia Estable Yewtu.be
-                import requests
-                api_url = f"https://yewtu.be/api/v1/videos/{video_id}"
-                resp = requests.get(api_url, timeout=12)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    # Buscamos el stream de audio
-                    audio_streams = data.get('adaptiveFormats', [])
-                    audio = [f for f in audio_streams if 'audio' in f.get('type', '')]
-                    if audio:
-                        url = audio[0].get('url')
-                        print(f"URL extraída vía Yewtu.be para {video_id}")
-                
-                if not url:
-                    # Fallback a Piped alternativo
-                    piped_url = f"https://pipedapi.kavin.rocks/streams/{video_id}"
-                    resp_p = requests.get(piped_url, timeout=10)
-                    if resp_p.status_code == 200:
-                        url = resp_p.json().get('audioStreams', [{}])[0].get('url')
-            except Exception as e_yew:
-                print(f"Error en motor Yewtu.be: {str(e_yew)}")
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'quiet': True,
+                'no_warnings': True,
+                'nocheckcertificate': True,
+                'extractor_args': {'youtube': ['player_client=ios,web']}
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+                url = info.get('url')
             
             if not url:
                 return jsonify({'error': 'Stream no disponible'}), 404
@@ -351,24 +339,17 @@ def stream_audio():
             # Update cache
             STREAM_CACHE[video_id] = {'url': url, 'timestamp': now}
 
-        # Usamos un Proxy para que el tráfico pase por Render y no sea bloqueado en el cliente
+        # Proxy simple a través de Render/Railway
         import httpx
-        from flask import Response
-
         def generate():
-            try:
-                # Usamos una cabecera de usuario real para el stream
-                headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-                with httpx.stream("GET", url, headers=headers, follow_redirects=True, timeout=60.0) as r:
-                    for chunk in r.iter_bytes(chunk_size=16384):
-                        yield chunk
-            except Exception as e_stream:
-                print(f"Error en streaming de proxy: {e_stream}")
-
+            with httpx.stream("GET", url, follow_redirects=True, timeout=60.0) as r:
+                for chunk in r.iter_bytes(chunk_size=16384):
+                    yield chunk
+        
         return Response(generate(), mimetype="audio/mpeg")
 
     except Exception as e:
-        print(f"Error general en stream_audio: {str(e)}")
+        print(f"Error en streaming: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/progress', methods=['GET'])

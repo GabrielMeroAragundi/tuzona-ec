@@ -323,36 +323,41 @@ def stream_audio():
     try:
         if not url:
             try:
-                # Intento vía API de Emergencia (Youtube API Proxy)
+                # Intento vía Cobalt API (El motor más potente actualmente)
                 import requests
-                api_url = f"https://yt-api.com/api/video/info?id={video_id}"
-                resp = requests.get(api_url, timeout=10)
+                cobalt_url = "https://cobalt.tools/api/json"
+                headers = {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                }
+                payload = {
+                    "url": f"https://www.youtube.com/watch?v={video_id}",
+                    "downloadMode": "audio",
+                    "audioFormat": "mp3",
+                    "audioBitrate": "128"
+                }
+                
+                resp = requests.post(cobalt_url, json=payload, headers=headers, timeout=15)
                 if resp.status_code == 200:
                     data = resp.json()
-                    if data.get('status') == 'success' and data.get('data', {}).get('adaptiveFormats'):
-                        formats = data['data']['adaptiveFormats']
-                        audio_formats = [f for f in formats if 'audio' in f.get('type', '')]
-                        if audio_formats:
-                            url = audio_formats[0].get('url')
-                            print(f"URL extraída vía API de Emergencia para {video_id}")
-
+                    if data.get('status') == 'stream' or data.get('status') == 'redirect':
+                        url = data.get('url')
+                        print(f"URL extraída vía Cobalt API para {video_id}")
+                
                 if not url:
-                    # Segundo intento: Piped API
-                    piped_instances = ["https://pipedapi.kavin.rocks", "https://api.piped.victr.me"]
-                    for instance in piped_instances:
-                        try:
-                            api_resp = requests.get(f"{instance}/streams/{video_id}", timeout=5)
-                            if api_resp.status_code == 200:
-                                d = api_resp.json()
-                                streams = [s for s in d.get('audioStreams', []) if 'url' in s]
-                                if streams:
-                                    url = streams[0]['url']
-                                    break
-                        except: continue
-            except Exception as e_final:
-                print(f"Error CRITICO en extracción: {str(e_final)}")
-                # Si falló todo, intentamos una última búsqueda de emergencia
-                print("Intentando búsqueda de URL cruda como último recurso...")
+                    # Fallback a API de emergencia si Cobalt falla
+                    api_url = f"https://yt-api.com/api/video/info?id={video_id}"
+                    resp = requests.get(api_url, timeout=10)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if data.get('status') == 'success' and data.get('data', {}).get('adaptiveFormats'):
+                            formats = data['data']['adaptiveFormats']
+                            audio_formats = [f for f in formats if 'audio' in f.get('type', '')]
+                            if audio_formats:
+                                url = audio_formats[0].get('url')
+                                print(f"URL extraída vía API de Emergencia para {video_id}")
+            except Exception as e_cobalt:
+                print(f"Error en motor Cobalt/Emergencia: {str(e_cobalt)}")
             
             if not url:
                 return jsonify({'error': 'Stream no disponible'}), 404

@@ -1158,27 +1158,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).catch(async (e) => {
                     console.error(`Error en fuente ${sourceIndex}:`, e);
                     
-                    // --- PLAN B: EXTRACCIÓN DIRECTA DESDE EL NAVEGADOR (PIPED API) ---
-                    if (sourceIndex === 0) {
-                        console.log("Intentando extracción directa desde Piped...");
+                    // --- PLAN B: EXTRACCIÓN DIRECTA (IP USUARIO + PROXY ESTABLE) ---
+                    if (parseInt(sourceIndex) === 0) {
+                        console.log("Intentando extracción directa con IP del usuario...");
                         try {
-                            const pipedRes = await fetch(`https://pipedapi.kavin.rocks/streams/${video.id}`);
-                            const pipedData = await pipedRes.json();
-                            const audioStream = pipedData.audioStreams ? pipedData.audioStreams[0] : null;
-                            if (audioStream && audioStream.url) {
-                                console.log("¡Éxito con Piped directo!");
-                                mainAudio.src = audioStream.url;
+                            const targetUrl = `https://yt-api.com/api/video/info?id=${video.id}`;
+                            const res = await fetch(`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(targetUrl)}`);
+                            const data = await res.json();
+                            const audio = data.data?.adaptiveFormats?.find(f => f.type?.includes('audio'));
+                            if (audio && audio.url) {
+                                console.log("¡Éxito con extracción directa!");
+                                mainAudio.src = audio.url;
                                 mainAudio.play();
                                 playerTitle.textContent = video.title;
                                 return;
                             }
                         } catch (clientErr) {
-                            console.error("Error en extracción directa Piped:", clientErr);
+                            console.error("Fallo en Plan B:", clientErr);
                         }
                     }
 
-                    if (sourceIndex < sources.length - 1) {
-                        playTrack(index, sourceIndex + 1);
+                    const nextSource = parseInt(sourceIndex) + 1;
+                    if (nextSource < sources.length) {
+                        playTrack(index, nextSource);
                     } else {
                         playerTitle.textContent = video.title + ' (Error: Prueba otro servidor)';
                         iconPlay.style.display = 'block';

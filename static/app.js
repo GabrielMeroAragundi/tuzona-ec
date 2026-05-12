@@ -1149,6 +1149,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- PERSISTENCIA AGRESIVA PARA SEGUNDO PLANO ---
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            // Si el reproductor estaba sonando y el navegador intenta pausarlo por "ocultar" la web
+            // forzamos la reanudación inmediata.
+            if (ytPlayer && ytPlayer.getPlayerState) {
+                const state = ytPlayer.getPlayerState();
+                if (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING) {
+                    setTimeout(() => {
+                        if (ytPlayer.playVideo) ytPlayer.playVideo();
+                        if (mainAudio.paused) mainAudio.play().catch(() => {});
+                    }, 100);
+                }
+            }
+        }
+    });
+
     // Modificamos el evento de cambio de estado del reproductor
     function onPlayerStateChange(event) {
         if (event.data === YT.PlayerState.ENDED) {
@@ -1159,14 +1176,17 @@ document.addEventListener('DOMContentLoaded', () => {
             iconPlay.style.display = 'none';
             iconPause.style.display = 'block';
             startProgressTimer();
-            // Truco PWA: Reproducir silencio de fondo
+            // Mantener el proceso vivo con silencio persistente
             mainAudio.src = SILENT_MP3;
             mainAudio.play().catch(() => {});
-        } else {
-            iconPlay.style.display = 'block';
-            iconPause.style.display = 'none';
-            stopProgressTimer();
-            mainAudio.pause();
+        } else if (event.data === YT.PlayerState.PAUSED) {
+            // Si se pausa pero la web sigue visible, es una pausa real del usuario
+            if (document.visibilityState === 'visible') {
+                iconPlay.style.display = 'block';
+                iconPause.style.display = 'none';
+                stopProgressTimer();
+                mainAudio.pause();
+            }
         }
     }
 

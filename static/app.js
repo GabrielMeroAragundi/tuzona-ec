@@ -1129,16 +1129,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${m}:${sec < 10 ? '0' : ''}${sec}`;
     }
 
-    async function playTrack(index) {
+    async function playTrack(index, sourceIndex = 0) {
         if (index < 0 || index >= currentPlaylist.length) return;
         currentPlayingIndex = index;
         const video = currentPlaylist[index];
+        const sources = ['0', '1', '2']; // Corresponden a VR, Externa, Piped
 
-        playerTitle.textContent = video.title + ' (Cargando...)';
-        if (playerChannel) playerChannel.textContent = video.channel || '';
-        if (playerThumb) {
-            if (video.thumbnail) playerThumb.innerHTML = `<img src="${video.thumbnail}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
-            else playerThumb.textContent = '🎵';
+        if (sourceIndex === 0) {
+            playerTitle.textContent = video.title + ' (Conectando...)';
+            if (playerChannel) playerChannel.textContent = video.channel || '';
+            if (playerThumb) {
+                if (video.thumbnail) playerThumb.innerHTML = `<img src="${video.thumbnail}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
+                else playerThumb.textContent = '🎵';
+            }
+        } else {
+            playerTitle.textContent = video.title + ` (Reintentando servidor ${sourceIndex + 1}/3...)`;
         }
         
         iconPlay.style.display = 'none';
@@ -1156,60 +1161,43 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playerBar) playerBar.classList.remove('hidden');
 
         try {
-            playerTitle.textContent = video.title;
+            if (sourceIndex === 0 && !mainAudio.paused) mainAudio.pause();
 
-            // Pausar el audio actual ANTES de cambiar el src
-            if (!mainAudio.paused) {
-                mainAudio.pause();
-            }
-
-            // 1. Configurar Media Session (si existe)
             if ('mediaSession' in navigator) {
                 try {
                     navigator.mediaSession.metadata = new MediaMetadata({
                         title: video.title,
                         artist: video.channel || 'TuZona EC',
-                        album: 'TuZona EC',
                         artwork: [{ src: video.thumbnail || '/static/favicon.png', sizes: '512x512', type: 'image/jpeg' }]
                     });
-                    
-                    navigator.mediaSession.setActionHandler('play', () => { 
-                        mainAudio.play(); iconPlay.style.display = 'none'; iconPause.style.display = 'block'; 
-                    });
-                    navigator.mediaSession.setActionHandler('pause', () => { 
-                        mainAudio.pause(); iconPlay.style.display = 'block'; iconPause.style.display = 'none'; 
-                    });
-                    navigator.mediaSession.setActionHandler('previoustrack', () => { 
-                        if (currentPlayingIndex > 0) playTrack(currentPlayingIndex - 1); 
-                    });
-                    navigator.mediaSession.setActionHandler('nexttrack', () => { 
-                        if (currentPlayingIndex + 1 < currentPlaylist.length) playTrack(currentPlayingIndex + 1); 
-                    });
-                } catch (msErr) { console.log('MediaSession error:', msErr); }
+                } catch (msErr) {}
             }
 
-            // 2. Cambiar src y reproducir con un pequeño retraso para estabilidad en móvil
-            mainAudio.src = `/api/stream?id=${video.id}`;
+            // Intentar con la fuente actual
+            mainAudio.src = `/api/stream?id=${video.id}&source=${sources[sourceIndex]}`;
             mainAudio.load(); 
             
-            // Esperar un momento antes de reproducir para asegurar que el buffer empiece
             setTimeout(() => {
                 mainAudio.play().then(() => {
+                    playerTitle.textContent = video.title;
                     iconPlay.style.display = 'none';
                     iconPause.style.display = 'block';
                     if (window.addToHistory) window.addToHistory(video);
                 }).catch((e) => {
-                    console.error('Play error:', e);
-                    playerTitle.textContent = video.title + ' (Error: Prueba otro servidor)';
-                    iconPlay.style.display = 'block';
-                    iconPause.style.display = 'none';
+                    console.error(`Error en fuente ${sourceIndex}:`, e);
+                    if (sourceIndex < sources.length - 1) {
+                        playTrack(index, sourceIndex + 1);
+                    } else {
+                        playerTitle.textContent = video.title + ' (Error: Prueba otro servidor)';
+                        iconPlay.style.display = 'block';
+                        iconPause.style.display = 'none';
+                        showNotification("Fallo en todos los servidores. Intenta con otra canción.", true);
+                    }
                 });
-            }, 150);
+            }, 200);
 
         } catch (err) {
-            console.error('playTrack setup error:', err);
-            iconPlay.style.display = 'block';
-            iconPause.style.display = 'none';
+            if (sourceIndex < sources.length - 1) playTrack(index, sourceIndex + 1);
         }
     }
 

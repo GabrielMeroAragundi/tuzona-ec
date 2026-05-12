@@ -320,40 +320,52 @@ def stream_audio():
     else:
         url = None
 
+    source_type = request.args.get('source', '0') # 0: VR, 1: External, 2: Piped
+    
     try:
         if not url:
-            try:
-                # El "Truco Maestro": Cliente de Realidad Virtual (Casi nunca bloqueado)
-                from pytubefix import YouTube
-                yt = YouTube(f"https://www.youtube.com/watch?v={video_id}", client='ANDROID_VR')
-                stream = yt.streams.filter(only_audio=True).first()
-                url = stream.url
-                print(f"URL extraída vía ANDROID_VR para {video_id}")
-            except Exception as e_vr:
-                print(f"Fallo VR, intentando API externa: {e_vr}")
-                import requests
-                # Fallback a API externa de alta disponibilidad
-                api_url = f"https://yt-api.com/api/video/info?id={video_id}"
-                resp = requests.get(api_url, timeout=10)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    formats = data.get('data', {}).get('adaptiveFormats', [])
-                    audio = [f for f in formats if 'audio' in f.get('type', '')]
-                    if audio:
-                        url = audio[0].get('url')
+            if source_type == '0':
+                # Fuente 1: Android VR
+                try:
+                    from pytubefix import YouTube
+                    yt = YouTube(f"https://www.youtube.com/watch?v={video_id}", client='ANDROID_VR')
+                    url = yt.streams.filter(only_audio=True).first().url
+                    print(f"Fuente VR exitosa para {video_id}")
+                except: pass
+
+            if not url or source_type == '1':
+                # Fuente 2: API Externa (Respaldo)
+                try:
+                    import requests
+                    api_resp = requests.get(f"https://yt-api.com/api/video/info?id={video_id}", timeout=10)
+                    if api_resp.status_code == 200:
+                        formats = api_resp.json().get('data', {}).get('adaptiveFormats', [])
+                        audio = [f for f in formats if 'audio' in f.get('type', '')]
+                        if audio: url = audio[0].get('url')
+                        print(f"Fuente Externa exitosa para {video_id}")
+                except: pass
+
+            if not url or source_type == '2':
+                # Fuente 3: Piped (Último recurso)
+                try:
+                    import requests
+                    piped_url = f"https://pipedapi.kavin.rocks/streams/{video_id}"
+                    resp_p = requests.get(piped_url, timeout=10)
+                    if resp_p.status_code == 200:
+                        url = resp_p.json().get('audioStreams', [{}])[0].get('url')
+                        print(f"Fuente Piped exitosa para {video_id}")
+                except: pass
 
             if not url:
-                return jsonify({'error': 'No se pudo obtener el link'}), 404
+                return jsonify({'error': 'No disponible en ninguna fuente'}), 404
             
-            # Guardar en cache por 1 hora
             STREAM_CACHE[video_id] = {'url': url, 'timestamp': now}
 
-        # REDIRECCIÓN DIRECTA: La clave para que Render no sea bloqueado
         from flask import redirect
         return redirect(url)
 
     except Exception as e:
-        print(f"Error en streaming: {str(e)}")
+        print(f"Error en stream {video_id} (Fuente {source_type}): {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/progress', methods=['GET'])

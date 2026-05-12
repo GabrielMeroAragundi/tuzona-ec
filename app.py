@@ -412,21 +412,27 @@ def download_videos():
     }
 
     try:
-        resp = requests.post(url_api, json=payload, headers=headers, timeout=8)
+        # Intentar con Cobalt (Instancia 1)
+        resp = requests.post("https://api.cobalt.tools/api/json", json=payload, headers=headers, timeout=8)
         result = resp.json()
         
-        if result.get('status') == 'stream' or result.get('status') == 'redirect':
+        if result.get('status') in ['stream', 'redirect']:
             download_url = result.get('url')
-            # Rastrear descarga en la DB
             current_user.songs_downloaded += 1
             db.session.commit()
             return jsonify({'url': download_url})
-        else:
-            return jsonify({'error': 'El servicio de descarga está ocupado, intenta en un momento.'}), 503
+        
+        # Si falla, intentar con una instancia alternativa
+        resp = requests.post("https://cobalt-api.v06.me/api/json", json=payload, headers=headers, timeout=8)
+        result = resp.json()
+        if result.get('status') in ['stream', 'redirect']:
+            return jsonify({'url': result.get('url')})
+
+        return jsonify({'error': f"Servidor ocupado: {result.get('text', 'Intenta de nuevo')}"}), 503
             
     except Exception as e:
-        print(f"Error en Cobalt: {e}")
-        return jsonify({'error': 'Error al generar link de descarga.'}), 500
+        print(f"Error descarga: {e}")
+        return jsonify({'error': "Error de conexión con el motor de descarga."}), 500
 
 @app.route('/api/trending', methods=['GET'])
 def get_trending():

@@ -322,31 +322,35 @@ def stream_audio():
 
     try:
         if not url:
-            ydl_opts = {
-                'format': 'bestaudio/best',
-                'quiet': True,
-                'no_warnings': True,
-                'nocheckcertificate': True,
-                'extractor_args': {'youtube': ['player_client=ios,web']}
-            }
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
-                url = info.get('url')
-            
+            try:
+                # El "Truco Maestro": Cliente de Realidad Virtual (Casi nunca bloqueado)
+                from pytubefix import YouTube
+                yt = YouTube(f"https://www.youtube.com/watch?v={video_id}", client='ANDROID_VR')
+                stream = yt.streams.filter(only_audio=True).first()
+                url = stream.url
+                print(f"URL extraída vía ANDROID_VR para {video_id}")
+            except Exception as e_vr:
+                print(f"Fallo VR, intentando API externa: {e_vr}")
+                import requests
+                # Fallback a API externa de alta disponibilidad
+                api_url = f"https://yt-api.com/api/video/info?id={video_id}"
+                resp = requests.get(api_url, timeout=10)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    formats = data.get('data', {}).get('adaptiveFormats', [])
+                    audio = [f for f in formats if 'audio' in f.get('type', '')]
+                    if audio:
+                        url = audio[0].get('url')
+
             if not url:
-                return jsonify({'error': 'Stream no disponible'}), 404
+                return jsonify({'error': 'No se pudo obtener el link'}), 404
             
-            # Update cache
+            # Guardar en cache por 1 hora
             STREAM_CACHE[video_id] = {'url': url, 'timestamp': now}
 
-        # Proxy simple a través de Render/Railway
-        import httpx
-        def generate():
-            with httpx.stream("GET", url, follow_redirects=True, timeout=60.0) as r:
-                for chunk in r.iter_bytes(chunk_size=16384):
-                    yield chunk
-        
-        return Response(generate(), mimetype="audio/mpeg")
+        # REDIRECCIÓN DIRECTA: La clave para que Render no sea bloqueado
+        from flask import redirect
+        return redirect(url)
 
     except Exception as e:
         print(f"Error en streaming: {str(e)}")

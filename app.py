@@ -98,34 +98,39 @@ class Playlist(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     songs = db.relationship('PlaylistSong', backref='playlist', lazy=True, cascade='all, delete-orphan')
 
-# --- NUEVO MOTOR DE STREAMING PARA MÓVIL ---
+# --- NUEVO MOTOR DE STREAMING PARA MÓVIL (PARALELO) ---
 @app.route('/api/stream_url/<video_id>')
 def get_stream_url(video_id):
     import requests
-    # Lista de nodos para buscar el audio (Invidious y Piped)
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    
     nodes = [
         f"https://inv.tux.pizza/api/v1/videos/{video_id}",
         f"https://pipedapi.kavin.rocks/streams/{video_id}",
-        f"https://vid.puffyan.us/api/v1/videos/{video_id}"
+        f"https://vid.puffyan.us/api/v1/videos/{video_id}",
+        f"https://invidious.sethforprivacy.com/api/v1/videos/{video_id}"
     ]
     
-    for url in nodes:
+    def fetch_url(url):
         try:
-            resp = requests.get(url, timeout=3)
+            resp = requests.get(url, timeout=2.5)
             if resp.status_code == 200:
                 data = resp.json()
-                # Si es Invidious
                 if 'adaptiveFormats' in data:
                     audio = next((f for f in data['adaptiveFormats'] if 'audio' in f.get('type', '')), None)
-                    if audio: return jsonify({'url': audio['url']})
-                # Si es Piped
+                    if audio: return audio['url']
                 if 'audioStreams' in data:
                     streams = sorted(data['audioStreams'], key=lambda x: x.get('bitrate', 0), reverse=True)
-                    if streams: return jsonify({'url': streams[0]['url']})
-        except:
-            continue
+                    if streams: return streams[0]['url']
+        except: pass
+        return None
+
+    with ThreadPoolExecutor(max_workers=len(nodes)) as executor:
+        futures = [executor.submit(fetch_url, url) for url in nodes]
+        for future in as_completed(futures):
+            result = future.result()
+            if result: return jsonify({'url': result})
             
-    # Si todo falla, devolvemos un error para que el JS use YouTube oficial como backup
     return jsonify({'error': 'No stream found'}), 404
 
 class PlaylistSong(db.Model):

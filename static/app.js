@@ -1239,9 +1239,13 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
                 
-                // Pedir el link de audio a nuestro propio servidor (infalible)
-                const resp = await fetch(`/api/stream_url/${video.id}`);
+                // TEMPORIZADOR DE EMERGENCIA (3.5 segundos)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+                const resp = await fetch(`/api/stream_url/${video.id}`, { signal: controller.signal });
                 const data = await resp.json();
+                clearTimeout(timeoutId);
 
                 if (data.url) {
                     mainAudio.src = data.url;

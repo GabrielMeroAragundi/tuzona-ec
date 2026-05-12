@@ -20,7 +20,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer
 import secrets
 import base64
-from captcha.image import ImageCaptcha
+# from captcha.image import ImageCaptcha  <-- Comentado para estabilidad en Vercel
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'tuzona-secret-key-2025')

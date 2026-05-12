@@ -1147,28 +1147,32 @@ document.addEventListener('DOMContentLoaded', () => {
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: video.title,
                 artist: video.channel || 'TuZona EC',
-                artwork: [{ src: video.thumbnail || '/static/favicon.png', sizes: '512x512', type: 'image/png' }]
+                artwork: [
+                    { src: video.thumbnail || '/static/favicon.png', sizes: '96x96',   type: 'image/png' },
+                    { src: video.thumbnail || '/static/favicon.png', sizes: '128x128', type: 'image/png' },
+                    { src: video.thumbnail || '/static/favicon.png', sizes: '512x512', type: 'image/png' }
+                ]
             });
             
             navigator.mediaSession.setActionHandler('play', () => { if(ytPlayer) ytPlayer.playVideo(); });
             navigator.mediaSession.setActionHandler('pause', () => { if(ytPlayer) ytPlayer.pauseVideo(); });
-            navigator.mediaSession.setActionHandler('previoustrack', () => btnPrev.click());
-            navigator.mediaSession.setActionHandler('nexttrack', () => btnNext.click());
+            navigator.mediaSession.setActionHandler('previoustrack', () => { if(btnPrev) btnPrev.click(); });
+            navigator.mediaSession.setActionHandler('nexttrack', () => { if(btnNext) btnNext.click(); });
         }
     }
 
-    // --- PERSISTENCIA AGRESIVA PARA SEGUNDO PLANO ---
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
-            // Si el reproductor estaba sonando y el navegador intenta pausarlo por "ocultar" la web
-            // forzamos la reanudación inmediata.
             if (ytPlayer && ytPlayer.getPlayerState) {
                 const state = ytPlayer.getPlayerState();
                 if (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING) {
-                    setTimeout(() => {
-                        if (ytPlayer.playVideo) ytPlayer.playVideo();
-                        if (mainAudio.paused) mainAudio.play().catch(() => {});
-                    }, 100);
+                    // Re-intentar varias veces para engañar al sistema operativo
+                    [100, 500, 1000].forEach(delay => {
+                        setTimeout(() => {
+                            if (ytPlayer.playVideo) ytPlayer.playVideo();
+                            if (mainAudio.paused) mainAudio.play().catch(() => {});
+                        }, delay);
+                    });
                 }
             }
         }

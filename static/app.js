@@ -1181,23 +1181,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- MOTOR DE PERSISTENCIA (WATCHDOG) ---
+    // --- MOTOR DE PERSISTENCIA Y RELEVO ---
     let watchdogTimer = null;
+    let backgroundAudioUrl = null; // Almacena el relevo en silencio
+
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
+            // RELEVO AUTOMÁTICO: Si tenemos el audio listo, cambiamos de YouTube a Audio Directo
+            if (activeEngine === 'youtube' && backgroundAudioUrl && ytPlayer && ytPlayer.getCurrentTime) {
+                const currentTime = ytPlayer.getCurrentTime();
+                ytPlayer.pauseVideo();
+                activeEngine = 'audio';
+                mainAudio.src = backgroundAudioUrl;
+                mainAudio.currentTime = currentTime;
+                mainAudio.play().catch(() => {});
+            }
+
             if (watchdogTimer) clearInterval(watchdogTimer);
             watchdogTimer = setInterval(() => {
-                if (ytPlayer && ytPlayer.getPlayerState && activeEngine === 'youtube') {
+                if (activeEngine === 'youtube' && ytPlayer && ytPlayer.getPlayerState) {
                     const state = ytPlayer.getPlayerState();
-                    // Solo intentamos reanudar si está pausado y no está cargando
-                    if (state === YT.PlayerState.PAUSED) {
-                        ytPlayer.playVideo();
-                        // Si el audio silencioso se paró, lo despertamos también
-                        if (mainAudio && mainAudio.paused) mainAudio.play().catch(() => {});
-                    }
+                    if (state === YT.PlayerState.PAUSED) ytPlayer.playVideo();
                 }
-            }, 1500); // Un poco más lento para evitar el parpadeo "loco"
+                if (mainAudio && mainAudio.paused && activeEngine === 'audio') {
+                    mainAudio.play().catch(() => {});
+                }
+            }, 1500);
         } else {
+            // RELEVO DE REGRESO: Volver a YouTube cuando el usuario abra la App
+            if (activeEngine === 'audio' && mainAudio) {
+                const currentTime = mainAudio.currentTime;
+                mainAudio.pause();
+                activeEngine = 'youtube';
+                if (ytPlayer && ytPlayer.seekTo) {
+                    ytPlayer.seekTo(currentTime);
+                    ytPlayer.playVideo();
+                }
+            }
             if (watchdogTimer) clearInterval(watchdogTimer);
             watchdogTimer = null;
         }
@@ -1241,6 +1261,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         requestWakeLock();
         activeEngine = 'youtube';
+        backgroundAudioUrl = null; // Resetear relevo
 
         try {
             if (ytPlayer && ytPlayer.loadVideoById) {
@@ -1248,6 +1269,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 playerTitle.textContent = video.title;
                 setupMediaSession(video);
                 if (window.addToHistory) window.addToHistory(video);
+
+                // PREPARAR RELEVO EN SILENCIO (Búsqueda inmediata en segundo plano)
+                fetch(`/api/stream_url/${video.id}`)
+                    .then(r => r.json())
+                    .then(data => { if(data.url) backgroundAudioUrl = data.url; })
+                    .catch(() => {});
             }
         } catch (err) {
             console.error("Error:", err);

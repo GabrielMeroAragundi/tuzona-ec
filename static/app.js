@@ -225,9 +225,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const songs = data.songs || [];
                 renderResults(songs);
                 
-                // Ocultar cabeceras de tabla pero mostrar la barra de control profesional
+                // Mostrar cabeceras de tabla para el nuevo diseño Spotify
                 const tableHeader = document.querySelector('.list-table-header');
-                if (tableHeader) tableHeader.style.display = 'none';
+                if (tableHeader) tableHeader.style.display = 'grid';
                 
                 if (controlsPanel) {
                     controlsPanel.style.display = 'flex';
@@ -251,34 +251,38 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderResults(songs) {
         if (!songs || !Array.isArray(songs)) return;
         
-        resultsContainer.className = "media-grid-layout numbered-grid";
+        // Volver a modo tabla profesional
+        resultsContainer.className = "list-table-body";
         
+        const today = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+
         resultsContainer.innerHTML = songs.map((s, index) => {
             const safeTitle = s.title.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
             const safeChannel = (s.channel || '').replace(/'/g, "&apos;").replace(/"/g, "&quot;");
             const isSelected = selectedVideos.has(s.id);
 
             return `
-                <div class="card search-card ${isSelected ? 'selected' : ''}" data-id="${s.id}" onclick="playSong('${s.id}', '${safeTitle}', '${safeChannel}', '${s.thumbnail}')">
-                    <div class="card-img-wrapper">
-                        <img src="${s.thumbnail}" alt="" class="card-img" loading="lazy">
-                        <div class="card-badge">${index + 1}</div>
-                        
-                        <!-- Selector Profesional -->
-                        <div class="card-selector-overlay" onclick="event.stopPropagation()">
-                            <label class="custom-checkbox-wrapper">
-                                <input type="checkbox" class="song-checkbox" data-id="${s.id}" ${isSelected ? 'checked' : ''}>
-                                <span class="custom-checkbox pro-checkbox"></span>
-                            </label>
-                        </div>
-
-                        <button class="play-btn">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                        </button>
+                <div class="list-table-row ${isSelected ? 'selected' : ''}" data-id="${s.id}" onclick="playSong('${s.id}', '${safeTitle}', '${safeChannel}', '${s.thumbnail}')">
+                    <div class="lth-col lth-check" onclick="event.stopPropagation()">
+                        <label class="custom-checkbox-wrapper">
+                            <input type="checkbox" class="song-checkbox" data-id="${s.id}" ${isSelected ? 'checked' : ''}>
+                            <span class="custom-checkbox"></span>
+                        </label>
                     </div>
-                    <div class="card-info">
-                        <div class="card-title">${s.title}</div>
-                        <div class="card-channel">${s.channel}</div>
+                    <div class="lth-col lth-num">${index + 1}</div>
+                    <div class="lth-col lth-song">
+                        <img src="${s.thumbnail}" alt="" class="row-thumb">
+                        <div class="song-info-meta">
+                            <div class="song-title-main">${s.title}</div>
+                        </div>
+                    </div>
+                    <div class="lth-col lth-artist">${s.channel}</div>
+                    <div class="lth-col lth-album">${s.year && s.year !== '2025' ? s.year : 'Single'}</div>
+                    <div class="lth-col lth-time"><span style="margin-right: 4px; opacity: 0.7;">⏱</span> ${s.duration || '3:45'}</div>
+                    <div class="lth-col lth-genre"><span class="genre-pill">Música</span></div>
+                    <div class="lth-col lth-date">${today}</div>
+                    <div class="lth-col lth-opt">
+                        <button class="opt-btn" onclick="event.stopPropagation()">⋮</button>
                     </div>
                 </div>
             `;

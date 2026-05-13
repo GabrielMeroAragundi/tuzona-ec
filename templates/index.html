@@ -50,6 +50,30 @@
       border-color: var(--primary) !important;
     }
     .search-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+    /* Spotify-style List Layout */
+    .spotify-style-header, .list-table-row {
+      display: grid !important;
+      grid-template-columns: 40px 40px 3fr 2fr 2fr 100px 120px 120px 40px !important;
+      align-items: center;
+      gap: 10px;
+    }
+    .list-table-row {
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .list-table-row:hover { background: rgba(255,255,255,0.05); }
+    .genre-pill {
+      background: rgba(255,255,255,0.1);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .opt-btn { background: none; border: none; color: var(--txt-muted); font-size: 1.2rem; cursor: pointer; }
+    .opt-btn:hover { color: white; }
+    .lth-song { display: flex; align-items: center; gap: 12px; }
   </style>
   <div class="bg-effects">
     <div class="orb orb-1"></div>
@@ -317,17 +341,16 @@
           </div>
 
           <div class="list-table">
-            <div class="list-table-header">
+            <div class="list-table-header spotify-style-header">
+              <div class="lth-col lth-check"></div>
               <div class="lth-col lth-num">#</div>
               <div class="lth-col lth-song">CANCIÓN</div>
               <div class="lth-col lth-artist">ARTISTA</div>
-              <div class="lth-col lth-year">AÑO</div>
-              <div class="lth-col lth-time"><svg viewBox="0 0 24 24" width="14" height="14" fill="none"
-                  stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg></div>
-              <div class="lth-col lth-dl">ACCIONES</div>
+              <div class="lth-col lth-album">ÁLBUM / FUENTE</div>
+              <div class="lth-col lth-time">DURACIÓN</div>
+              <div class="lth-col lth-genre">GÉNERO</div>
+              <div class="lth-col lth-date">AÑADIDA</div>
+              <div class="lth-col lth-opt"></div>
             </div>
             <div id="results-container" class="list-table-body">
               <!-- Track rows inserted here via JS -->

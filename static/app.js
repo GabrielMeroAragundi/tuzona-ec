@@ -1188,11 +1188,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 ]
             });
             
-            // PANEL DE CONTROL COMPLETO
-            navigator.mediaSession.setActionHandler('play', () => { if(ytPlayer) ytPlayer.playVideo(); });
-            navigator.mediaSession.setActionHandler('pause', () => { if(ytPlayer) ytPlayer.pauseVideo(); });
-            navigator.mediaSession.setActionHandler('previoustrack', () => { if(btnPrev) btnPrev.click(); });
-            navigator.mediaSession.setActionHandler('nexttrack', () => { if(btnNext) btnNext.click(); });
+            // CONFIGURAR INTERCEPTOR DE PAUSA Y BOTONES
+            const actions = [
+                ['play', () => { if(ytPlayer) ytPlayer.playVideo(); if(mainAudio) mainAudio.play(); }],
+                ['pause', () => { 
+                    // Si el sistema intenta pausar al salir, forzamos la reanudación
+                    if (document.visibilityState === 'hidden') {
+                        if(ytPlayer) ytPlayer.playVideo(); 
+                        if(mainAudio) mainAudio.play();
+                    } else {
+                        if(ytPlayer) ytPlayer.pauseVideo();
+                        if(mainAudio) mainAudio.pause();
+                    }
+                }],
+                ['previoustrack', () => { if(btnPrev) btnPrev.click(); }],
+                ['nexttrack', () => { if(btnNext) btnNext.click(); }],
+                ['seekbackward', () => { if(ytPlayer) ytPlayer.seekTo(ytPlayer.getCurrentTime() - 10); }],
+                ['seekforward', () => { if(ytPlayer) ytPlayer.seekTo(ytPlayer.getCurrentTime() + 10); }]
+            ];
+
+            actions.forEach(([action, handler]) => {
+                try { navigator.mediaSession.setActionHandler(action, handler); } catch(e) {}
+            });
+            
+            // Forzar estado activo
+            navigator.mediaSession.playbackState = 'playing';
         }
     }
 
@@ -1214,12 +1234,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (watchdogTimer) clearInterval(watchdogTimer);
             watchdogTimer = setInterval(() => {
-                if (activeEngine === 'youtube' && ytPlayer && ytPlayer.getPlayerState) {
+                if (ytPlayer && ytPlayer.getPlayerState && activeEngine === 'youtube') {
                     const state = ytPlayer.getPlayerState();
-                    if (state === YT.PlayerState.PAUSED) ytPlayer.playVideo();
+                    if (state === YT.PlayerState.PAUSED) {
+                        ytPlayer.playVideo();
+                        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+                    }
                 }
                 if (mainAudio && mainAudio.paused && activeEngine === 'audio') {
                     mainAudio.play().catch(() => {});
+                    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
                 }
             }, 1500);
         } else {

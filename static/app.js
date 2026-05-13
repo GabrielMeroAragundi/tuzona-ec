@@ -1079,9 +1079,18 @@ document.addEventListener('DOMContentLoaded', () => {
     window.onYouTubeIframeAPIReady = () => {
         ytPlayer = new YT.Player('yt-handler', {
             height: '1', width: '1', videoId: '',
-            playerVars: { 'autoplay': 0, 'controls': 0, 'disablekb': 1, 'fs': 0, 'rel': 0, 'modestbranding': 1 },
+            playerVars: { 
+                'autoplay': 1, 
+                'controls': 0, 
+                'disablekb': 1, 
+                'fs': 0, 
+                'rel': 0, 
+                'modestbranding': 1,
+                'origin': window.location.origin,
+                'enablejsapi': 1
+            },
             events: { 
-                'onReady': () => console.log("YouTube Ready"), 
+                'onReady': () => console.log("TuZona EC Player Ready"), 
                 'onStateChange': onPlayerStateChange 
             }
         });
@@ -1272,6 +1281,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             if (ytPlayer && ytPlayer.loadVideoById) {
                 ytPlayer.loadVideoById({ videoId: video.id, suggestedQuality: 'small' });
+                ytPlayer.playVideo(); // FORZADO PARA APK
                 playerTitle.textContent = video.title;
                 setupMediaSession(video);
                 if (window.addToHistory) window.addToHistory(video);

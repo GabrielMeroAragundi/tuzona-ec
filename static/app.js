@@ -9,20 +9,7 @@ window.showNotification = (msg, isError = false) => {
 };
 
 /* ── ELEMENTOS GLOBALES DE LA INTERFAZ ── */
-const playerTitle   = document.getElementById('player-title');
-const playerChannel = document.getElementById('player-channel');
-const playerThumb   = document.getElementById('player-thumb');
-const btnPlay       = document.getElementById('player-play');
-const btnNext       = document.getElementById('player-next');
-const btnPrev       = document.getElementById('player-prev');
-const btnFav        = document.getElementById('player-fav');
-const iconPlay      = document.getElementById('icon-play');
-const iconPause     = document.getElementById('icon-pause');
-const progressSlider= document.getElementById('player-progress');
-const timeCurrent   = document.getElementById('player-time-current');
-const timeTotal     = document.getElementById('player-time-total');
-const queueDownloadBtn = document.getElementById('btn-download-queue');
-const topDownloadBtn   = document.getElementById('btn-download-top');
+let playerTitle, playerChannel, playerThumb, btnPlay, btnNext, btnPrev, btnFav, iconPlay, iconPause, progressSlider, timeCurrent, timeTotal, queueDownloadBtn, topDownloadBtn;
 
 // --- VARIABLES DE ESTADO GLOBALES ---
 let ytPlayer = null;
@@ -133,14 +120,28 @@ window.handleRegister = async function() {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    /* ── DOM REFS ── */
+    /* ── ASIGNAR ELEMENTOS GLOBALES ── */
+    playerTitle    = document.getElementById('player-title');
+    playerChannel  = document.getElementById('player-channel');
+    playerThumb    = document.getElementById('player-thumb');
+    btnPlay        = document.getElementById('player-play');
+    btnNext        = document.getElementById('player-next');
+    btnPrev        = document.getElementById('player-prev');
+    btnFav         = document.getElementById('player-fav');
+    iconPlay       = document.getElementById('icon-play');
+    iconPause      = document.getElementById('icon-pause');
+    progressSlider = document.getElementById('player-progress');
+    timeCurrent    = document.getElementById('player-time-current');
+    timeTotal      = document.getElementById('player-time-total');
+    topDownloadBtn = document.getElementById('top-download-btn');
+    queueDownloadBtn = document.getElementById('queue-download-btn');
+
+    /* ── DOM REFS LOCALES ── */
     const searchForm       = document.getElementById('search-form');
     const searchInput      = document.getElementById('search-input');
     const resultsContainer = document.getElementById('results-container');
     const loader           = document.getElementById('loader');
     const controlsPanel    = document.getElementById('controls-panel');
-    const topDownloadBtn   = document.getElementById('top-download-btn');
-    const queueDownloadBtn = document.getElementById('queue-download-btn');
     const notification     = document.getElementById('notification');
     const searchResultsSec = document.getElementById('search-results');
 

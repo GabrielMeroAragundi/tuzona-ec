@@ -265,19 +265,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
             return `
                 <div class="list-table-row ${isSelected ? 'selected' : ''}" data-id="${s.id}" onclick="playSong('${s.id}', '${safeTitle}', '${safeChannel}', '${s.thumbnail}')">
-                    <div class="lth-col lth-check" onclick="event.stopPropagation()">
+                    <div class="lth-col lth-check desktop-only" onclick="event.stopPropagation()">
                         <label class="custom-checkbox-wrapper">
                             <input type="checkbox" class="song-checkbox" data-id="${s.id}" ${isSelected ? 'checked' : ''}>
                             <span class="custom-checkbox"></span>
                         </label>
                     </div>
+                    <div class="lth-col lth-drag mobile-only" onclick="event.stopPropagation()">
+                        <label style="cursor:pointer; display:flex; align-items:center; opacity:0.5;">
+                            <input type="checkbox" class="song-checkbox" data-id="${s.id}" ${isSelected ? 'checked' : ''} style="display:none;">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                <circle cx="9" cy="5" r="1.5" /><circle cx="15" cy="5" r="1.5" />
+                                <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
+                                <circle cx="9" cy="19" r="1.5" /><circle cx="15" cy="19" r="1.5" />
+                            </svg>
+                        </label>
+                    </div>
                     <div class="lth-col lth-song">
                         <img src="${s.thumbnail}" alt="" class="row-thumb">
-                        <div class="song-info-meta">
-                            <div class="song-title-main">${s.title}</div>
+                        <div class="song-info-meta" style="display:flex; flex-direction:column; justify-content:center;">
+                            <div class="song-title-main" style="line-height:1.2; margin-bottom:2px;">${s.title}</div>
+                            <div class="song-artist-mobile mobile-only" style="align-items:center; gap:4px; font-size:0.85rem; color:var(--txt-muted);">
+                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--primary)" stroke-width="2">
+                                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                                    <line x1="12" y1="19" x2="12" y2="22" />
+                                </svg>
+                                ${s.channel}
+                            </div>
                         </div>
                     </div>
-                    <div class="lth-col lth-artist">
+                    <div class="lth-col lth-artist desktop-only">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--primary)" stroke-width="2" style="margin-right:4px;">
                             <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
                             <path d="M19 10v2a7 7 0 0 1-14 0v-2" />

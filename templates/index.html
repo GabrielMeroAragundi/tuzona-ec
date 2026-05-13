@@ -71,6 +71,22 @@
     .lth-song { display: flex; align-items: center; gap: 16px; font-weight: 600; font-size: 1.05rem; }
     .row-thumb { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; }
     .lth-artist { display: flex; align-items: center; gap: 8px; color: var(--txt-muted); font-size: 0.95rem; }
+    
+    .mobile-only { display: none !important; }
+    
+    @media (max-width: 768px) {
+      .spotify-style-header { display: none !important; }
+      .list-table-row {
+        grid-template-columns: 24px 1fr 40px !important;
+        padding: 10px !important;
+        gap: 12px !important;
+      }
+      .desktop-only { display: none !important; }
+      .mobile-only { display: flex !important; }
+      .lth-song { gap: 12px !important; }
+      .song-title-main { font-size: 1rem !important; }
+      .row-thumb { width: 50px !important; height: 50px !important; }
+    }
   </style>
   <div class="bg-effects">
     <div class="orb orb-1"></div>

@@ -2196,7 +2196,44 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch(e) { showNotification('Error cargando listas', true); }
     };
 
+    // --- CARGA DE TENDENCIAS ---
+    const loadTrendingSongs = async () => {
+        const grid = document.getElementById('trending-grid');
+        if (!grid) return;
+        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="spinner"></div><p>Cargando música en tendencia...</p></div>';
+        try {
+            const res = await fetch('/api/trending');
+            const songs = await res.json();
+            renderTrendingSongs(songs);
+        } catch (e) {
+            console.error("Error loading trending:", e);
+        }
+    };
+
+    const renderTrendingSongs = (songs) => {
+        const grid = document.getElementById('trending-grid');
+        if (!grid || !songs.length) return;
+        grid.innerHTML = songs.map((s, index) => `
+            <div class="card" onclick="playSong('${s.id}', '${s.title.replace(/'/g, "\\'")}', '${s.channel.replace(/'/g, "\\'")}', '${s.thumbnail}')">
+                <div class="card-img-wrapper">
+                    <img src="${s.thumbnail}" alt="" class="card-img" loading="lazy">
+                    <div class="card-badge">${index + 1}</div>
+                    <button class="play-btn">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    </button>
+                </div>
+                <div class="card-info">
+                    <div class="card-title">${s.title}</div>
+                    <div class="card-channel">${s.channel}</div>
+                </div>
+            </div>
+        `).join('');
+    };
+
     // Cargar playlists al inicio si el usuario está logueado
     if (currentUser) window.renderPlaylists();
+    
+    // CARGAR TODO AL INICIO
+    loadTrendingSongs();
 
 });

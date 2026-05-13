@@ -1059,22 +1059,30 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if(queueDownloadBtn) queueDownloadBtn.innerHTML = `Descargar (0)`;
         if(topDownloadBtn) topDownloadBtn.innerHTML = `Descargar Seleccionadas`;
-    };
-
-    if(queueDownloadBtn) queueDownloadBtn.addEventListener('click', handleDownload);
-    if(topDownloadBtn) topDownloadBtn.addEventListener('click', handleDownload);
-
-
-    /* ── PLAYER LOGIC ── */
-    let currentPlaylist = [];
-    let currentPlayingIndex = -1;
-
+      /* ── ELEMENTOS DE LA INTERFAZ (Movidos al inicio por seguridad) ── */
     const playerTitle   = document.getElementById('player-title');
     const playerChannel = document.getElementById('player-channel');
     const playerThumb   = document.getElementById('player-thumb');
-    // --- NUEVO MOTOR DE REPRODUCCIÓN (YOUTUBE IFRAME API) ---
+    const btnPlay       = document.getElementById('player-play');
+    const btnNext       = document.getElementById('player-next');
+    const btnPrev       = document.getElementById('player-prev');
+    const btnFav        = document.getElementById('player-fav');
+    const iconPlay      = document.getElementById('icon-play');
+    const iconPause     = document.getElementById('icon-pause');
+    const progressSlider= document.getElementById('player-progress');
+    const timeCurrent   = document.getElementById('player-time-current');
+    const timeTotal     = document.getElementById('player-time-total');
+    
+    // --- VARIABLES DE CONTROL ---
     let ytPlayer = null;
     let progressTimer = null;
+    let currentPlaylist = [];
+    let currentPlayingIndex = -1;
+    let activeEngine = 'youtube'; 
+    const SILENT_MP3 = "data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP8A/wD/";
+    window.mainAudio = document.getElementById('main-audio-element');
+    if (mainAudio) mainAudio.loop = true;
+    // --- NUEVO MOTOR DE REPRODUCCIÓN (YOUTUBE IFRAME API) ---
 
     window.onYouTubeIframeAPIReady = () => {
         ytPlayer = new YT.Player('yt-handler', {
@@ -1120,11 +1128,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- VARIABLES DE CONTROL GLOBALES ---
-    let activeEngine = 'youtube'; 
-    const SILENT_MP3 = "data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP8A/wD/";
-    window.mainAudio = document.getElementById('main-audio-element');
-    if (mainAudio) mainAudio.loop = true;
 
     let wakeLock = null;
     async function requestWakeLock() {
@@ -1253,16 +1256,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (progressTimer) clearInterval(progressTimer);
     }
 
-    // --- PLAYER UI CONTROLS ---
-    const btnPlay       = document.getElementById('player-play');
-    const btnNext       = document.getElementById('player-next');
-    const btnPrev       = document.getElementById('player-prev');
-    const btnFav        = document.getElementById('player-fav');
-    const iconPlay      = document.getElementById('icon-play');
-    const iconPause     = document.getElementById('icon-pause');
-    const progressSlider= document.getElementById('player-progress');
-    const timeCurrent   = document.getElementById('player-time-current');
-    const timeTotal     = document.getElementById('player-time-total');
 
     function formatTime(s) {
         if (isNaN(s) || !isFinite(s)) return '0:00';
@@ -1298,13 +1291,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (window.addToHistory) window.addToHistory(video);
 
                 // TEMPORIZADOR DE EMERGENCIA (4 segundos)
-                // Si YouTube no arranca en 4s, saltamos al audio directo
                 const fallbackTimeout = setTimeout(() => {
-                    if (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING && backgroundAudioUrl) {
-                        console.log("YouTube bloqueado, usando motor de audio directo...");
-                        activeEngine = 'audio';
-                        mainAudio.src = backgroundAudioUrl;
-                        mainAudio.play().catch(() => {});
+                    if (ytPlayer && ytPlayer.getPlayerState) {
+                        try {
+                            const state = ytPlayer.getPlayerState();
+                            if (state !== YT.PlayerState.PLAYING && backgroundAudioUrl) {
+                                console.log("YouTube bloqueado, usando motor de audio directo...");
+                                activeEngine = 'audio';
+                                mainAudio.src = backgroundAudioUrl;
+                                mainAudio.play().catch(() => {});
+                            }
+                        } catch(e) {}
                     }
                 }, 4000);
 

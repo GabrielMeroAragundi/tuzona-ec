@@ -263,15 +263,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const grid = document.getElementById('trending-grid');
         const loader = document.getElementById('trending-loader');
         if (!grid) return;
+        
+        if (loader) {
+            loader.style.display = 'flex';
+            loader.innerHTML = '<div class="spinner"></div><p>Buscando música en tendencia...</p>';
+        }
+
         try {
+            console.log("Iniciando carga de tendencias...");
             const res = await fetch('/api/trending');
+            if (!res.ok) throw new Error("Servidor respondió con error: " + res.status);
+            
             const songs = await res.json();
+            console.log("Tendencias recibidas:", songs.length);
+
             if (!songs || songs.length === 0) {
-                if (loader) loader.innerHTML = '<p>No hay tendencias disponibles ahora.</p>';
+                if (loader) loader.innerHTML = '<p style="color:var(--txt-muted)">No hay tendencias disponibles en este momento. Intenta buscar una canción.</p>';
                 return;
             }
+
             grid.style.display = 'grid';
             if (loader) loader.style.display = 'none';
+            
             grid.innerHTML = songs.map((s, index) => {
                 const safeTitle = s.title.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
                 const safeChannel = (s.channel || '').replace(/'/g, "&apos;").replace(/"/g, "&quot;");
@@ -292,8 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }).join('');
         } catch (e) { 
-            console.error("Error loading trending:", e);
-            if (loader) loader.innerHTML = '<p>Error al cargar tendencias. Reintenta pronto.</p>';
+            console.error("Error crítico en tendencias:", e);
+            if (loader) loader.innerHTML = `<p style="color:var(--ecr)">⚠️ Error de conexión: ${e.message}</p>`;
         }
     };
 
@@ -303,15 +316,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('/api/user_status');
             const data = await res.json();
             const userActions = document.getElementById('user-actions');
+            if (!userActions) return;
+            
             if (data.logged_in) {
                 currentUser = data.user;
-                userActions.innerHTML = `<div class="user-profile-badge"><div class="user-name">${currentUser.username}</div><button class="btn-logout" onclick="location.href='/api/logout'">Salir</button></div>`;
+                userActions.innerHTML = `
+                    <div class="user-profile-badge">
+                        <div class="user-name">${currentUser.username}</div>
+                        <button class="btn-logout" onclick="location.href='/api/logout'">Salir</button>
+                    </div>`;
             } else {
                 userActions.innerHTML = `<button class="btn-login" onclick="openAuthModal()">Iniciar sesión</button>`;
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error("Error auth:", e);
+        }
     }
 
-    checkAuthStatus();
-    loadTrendingSongs();
+    // ARRANQUE EN SECUENCIA
+    checkAuthStatus().then(() => {
+        loadTrendingSongs();
+    });
 });

@@ -1136,6 +1136,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- LÓGICA DE INSTALACIÓN PWA ---
     let deferredPrompt;
     const btnInstallPwa = document.getElementById('btn-install-pwa');
+    const btnDownloadApk = document.getElementById('btn-download-apk');
+
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile && btnDownloadApk) {
+        btnDownloadApk.style.display = 'block';
+    }
 
     window.addEventListener('beforeinstallprompt', (e) => {
         // Evitar que el navegador muestre el aviso automático

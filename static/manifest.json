@@ -4,18 +4,22 @@
   "description": "Tu plataforma de música ecuatoriana y éxitos mundiales.",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0a0a0b",
   "theme_color": "#9d4edd",
+  "categories": ["music", "entertainment"],
   "icons": [
     {
       "src": "/static/favicon.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/static/favicon.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

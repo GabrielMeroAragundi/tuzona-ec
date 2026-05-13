@@ -63,11 +63,15 @@
         <a href="#biblioteca" class="nav-link">Biblioteca</a>
         <a href="#generos" class="nav-link">Géneros</a>
       </div>
-      <div class="nav-actions">
-        <!-- Botón de Instalación PWA (Oculto por defecto) -->
-        <button id="btn-install-pwa" class="btn-primary" style="display: none; padding: 6px 12px; font-size: 0.75rem; border-radius: 20px; margin-right: 10px;">
-          Instalar App
-        </button>
+        <div class="nav-actions">
+            <!-- Botón para descargar APK real -->
+            <a href="/static/tuzona_ec.apk" download id="btn-download-apk" class="btn-secondary" style="display: none; padding: 6px 12px; font-size: 0.75rem; border-radius: 20px; margin-right: 10px; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); text-decoration: none; color: white;">
+                Descargar APK
+            </a>
+            <!-- Botón de Instalación PWA -->
+            <button id="btn-install-pwa" class="btn-primary" style="display: none; padding: 6px 12px; font-size: 0.75rem; border-radius: 20px; margin-right: 10px;">
+                Instalar App
+            </button>
         <button class="nav-icon-btn" id="theme-toggle" title="Tema">
           <svg id="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
             stroke-width="2">

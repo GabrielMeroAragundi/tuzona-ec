@@ -1214,40 +1214,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
-            // RELEVO AUTOMÁTICO: Si tenemos el audio listo, cambiamos de YouTube a Audio Directo
-            if (activeEngine === 'youtube' && backgroundAudioUrl && ytPlayer && ytPlayer.getCurrentTime) {
-                const currentTime = ytPlayer.getCurrentTime();
-                ytPlayer.pauseVideo();
-                activeEngine = 'audio';
-                mainAudio.src = backgroundAudioUrl;
-                mainAudio.currentTime = currentTime;
-                mainAudio.play().catch(() => {});
-            }
-
             if (watchdogTimer) clearInterval(watchdogTimer);
             watchdogTimer = setInterval(() => {
-                // Solo vigilar si realmente queremos que suene
-                if (activeEngine === 'youtube' && ytPlayer && ytPlayer.getPlayerState) {
+                if (ytPlayer && ytPlayer.getPlayerState) {
                     const state = ytPlayer.getPlayerState();
                     if (state === YT.PlayerState.PAUSED) {
                         ytPlayer.playVideo();
                     }
                 }
-                if (activeEngine === 'audio' && mainAudio && mainAudio.paused) {
-                    mainAudio.play().catch(() => {});
-                }
-            }, 2000); // 2 segundos es el equilibrio perfecto
+            }, 2000);
         } else {
-            // RELEVO DE REGRESO: Volver a YouTube cuando el usuario abra la App
-            if (activeEngine === 'audio' && mainAudio) {
-                const currentTime = mainAudio.currentTime;
-                mainAudio.pause();
-                activeEngine = 'youtube';
-                if (ytPlayer && ytPlayer.seekTo) {
-                    ytPlayer.seekTo(currentTime);
-                    ytPlayer.playVideo();
-                }
-            }
             if (watchdogTimer) clearInterval(watchdogTimer);
             watchdogTimer = null;
         }
@@ -1281,39 +1257,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         requestWakeLock();
         activeEngine = 'youtube';
-        backgroundAudioUrl = null; // Resetear relevo
 
         try {
             if (ytPlayer && ytPlayer.loadVideoById) {
                 ytPlayer.loadVideoById({ videoId: video.id, suggestedQuality: 'small' });
-                ytPlayer.playVideo(); // FORZADO PARA APK
+                ytPlayer.playVideo(); // Forzado para móviles/APK
                 playerTitle.textContent = video.title;
                 setupMediaSession(video);
                 if (window.addToHistory) window.addToHistory(video);
-
-                // TEMPORIZADOR DE EMERGENCIA (4 segundos)
-                const fallbackTimeout = setTimeout(() => {
-                    if (ytPlayer && ytPlayer.getPlayerState) {
-                        try {
-                            const state = ytPlayer.getPlayerState();
-                            if (state !== YT.PlayerState.PLAYING && backgroundAudioUrl) {
-                                console.log("YouTube bloqueado, usando motor de audio directo...");
-                                activeEngine = 'audio';
-                                mainAudio.src = backgroundAudioUrl;
-                                mainAudio.play().catch(() => {});
-                            }
-                        } catch(e) {}
-                    }
-                }, 4000);
-
-                // PREPARAR RELEVO EN SILENCIO (Búsqueda inmediata en segundo plano)
-                fetch(`/api/stream_url/${video.id}`)
-                    .then(r => r.json())
-                    .then(data => { if(data.url) backgroundAudioUrl = data.url; })
-                    .catch(() => {});
+            } else {
+                // Si el reproductor no está listo, esperamos un segundo
+                setTimeout(() => playTrack(index), 1000);
             }
         } catch (err) {
-            console.error("Error:", err);
+            console.error("Error al cargar:", err);
         }
     }
 

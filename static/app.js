@@ -244,27 +244,93 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsContainer.innerHTML = songs.map((s, index) => {
             const safeTitle = s.title.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
             const safeChannel = (s.channel || '').replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+            const isSelected = selectedVideos.has(s.id);
+
             return `
-                <div class="list-table-row" onclick="playSong('${s.id}', '${safeTitle}', '${safeChannel}', '${s.thumbnail}')">
-                    <div class="lth-col lth-num">${index + 1}</div>
+                <div class="list-table-row ${isSelected ? 'selected' : ''}" data-id="${s.id}" onclick="playSong('${s.id}', '${safeTitle}', '${safeChannel}', '${s.thumbnail}')">
+                    <div class="lth-col lth-num" onclick="event.stopPropagation()">
+                        <label class="custom-checkbox-wrapper">
+                            <input type="checkbox" class="song-checkbox" data-id="${s.id}" ${isSelected ? 'checked' : ''}>
+                            <span class="custom-checkbox"></span>
+                        </label>
+                        <span class="num-text">${index + 1}</span>
+                    </div>
                     <div class="lth-col lth-song">
-                        <img src="${s.thumbnail}" alt="" style="width:40px;height:40px;border-radius:4px;margin-right:12px;">
-                        <div>
-                            <div style="font-weight:600;color:var(--txt);">${s.title}</div>
-                            <div style="font-size:0.8rem;color:var(--txt-muted);">${s.channel}</div>
+                        <img src="${s.thumbnail}" alt="" class="row-thumb">
+                        <div class="song-info-meta">
+                            <div class="song-title-main">${s.title}</div>
+                            <div class="song-artist-sub">${s.channel}</div>
                         </div>
                     </div>
                     <div class="lth-col lth-artist">${s.channel}</div>
                     <div class="lth-col lth-album">Single</div>
                     <div class="lth-col lth-time">${s.duration || '3:45'}</div>
                     <div class="lth-col lth-dl">
-                        <button class="play-btn-circle" style="background:var(--primary);color:white;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;">
+                        <button class="play-btn-circle">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                         </button>
                     </div>
                 </div>
             `;
         }).join('');
+        
+        // Re-attach checkbox listeners
+        attachCheckboxListeners();
+    }
+
+    function attachCheckboxListeners() {
+        document.querySelectorAll('.song-checkbox').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                e.stopPropagation();
+                const id = cb.getAttribute('data-id');
+                const row = cb.closest('.list-table-row');
+                if (cb.checked) {
+                    selectedVideos.add(id);
+                    row.classList.add('selected');
+                } else {
+                    selectedVideos.delete(id);
+                    row.classList.remove('selected');
+                }
+                updateSelectionUI();
+            });
+        });
+    }
+
+    function updateSelectionUI() {
+        const count = selectedVideos.size;
+        const topCount = document.getElementById('top-selection-count');
+        const dCounts = document.querySelectorAll('.d-count');
+        
+        if (topCount) topCount.textContent = `${count} seleccionadas`;
+        dCounts.forEach(el => el.textContent = count > 0 ? `(${count})` : '');
+        
+        if (topDownloadBtn) topDownloadBtn.disabled = (count === 0);
+        if (queueDownloadBtn) queueDownloadBtn.disabled = (count === 0);
+        if (controlsPanel) {
+            if (count > 0) controlsPanel.classList.remove('hidden');
+            else controlsPanel.classList.add('hidden');
+        }
+    }
+
+    // SELECT ALL
+    const selectAllCb = document.getElementById('select-all-cb');
+    if (selectAllCb) {
+        selectAllCb.addEventListener('change', () => {
+            const checkboxes = document.querySelectorAll('.song-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = selectAllCb.checked;
+                const id = cb.getAttribute('data-id');
+                const row = cb.closest('.list-table-row');
+                if (cb.checked) {
+                    selectedVideos.add(id);
+                    row.classList.add('selected');
+                } else {
+                    selectedVideos.delete(id);
+                    row.classList.remove('selected');
+                }
+            });
+            updateSelectionUI();
+        });
     }
 
     /* ── TRENDING ── */
@@ -283,12 +349,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!res.ok) throw new Error("Servidor respondió con error: " + res.status);
             
             const data = await res.json();
-            
-            // EL SERVIDOR ENVÍA 'trending'
             const songs = data.trending || [];
 
             if (!songs || songs.length === 0) {
-                if (loader) loader.innerHTML = '<p style="color:var(--txt-muted)">No hay tendencias disponibles en este momento. Intenta buscar una canción.</p>';
+                if (loader) loader.innerHTML = '<p style="color:var(--txt-muted)">No hay tendencias disponibles.</p>';
                 return;
             }
 
@@ -315,8 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }).join('');
         } catch (e) { 
-            console.error("Error crítico en tendencias:", e);
-            if (loader) loader.innerHTML = `<p style="color:var(--ecr)">⚠️ Error de conexión: ${e.message}</p>`;
+            if (loader) loader.innerHTML = `<p style="color:var(--ecr)">⚠️ Error: ${e.message}</p>`;
         }
     };
 
@@ -338,12 +401,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 userActions.innerHTML = `<button class="btn-login" onclick="openAuthModal()">Iniciar sesión</button>`;
             }
-        } catch (e) {
-            console.error("Error auth:", e);
-        }
+        } catch (e) {}
     }
 
-    // ARRANQUE EN SECUENCIA
     checkAuthStatus().then(() => {
         loadTrendingSongs();
     });

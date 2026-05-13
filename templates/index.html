@@ -63,15 +63,17 @@
         <a href="#biblioteca" class="nav-link">Biblioteca</a>
         <a href="#generos" class="nav-link">Géneros</a>
       </div>
-        <div class="nav-actions">
-            <!-- Botón para descargar APK real -->
-            <a href="/static/tuzona_ec.apk" download id="btn-download-apk" class="btn-secondary" style="display: none; padding: 6px 12px; font-size: 0.75rem; border-radius: 20px; margin-right: 10px; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); text-decoration: none; color: white;">
-                Descargar APK
-            </a>
-            <!-- Botón de Instalación PWA -->
-            <button id="btn-install-pwa" class="btn-primary" style="display: none; padding: 6px 12px; font-size: 0.75rem; border-radius: 20px; margin-right: 10px;">
-                Instalar App
-            </button>
+      <div class="nav-actions">
+        <!-- Botón para descargar APK real -->
+        <a href="/static/tuzona_ec.apk" download id="btn-download-apk" class="btn-secondary"
+          style="display: none; padding: 6px 12px; font-size: 0.75rem; border-radius: 20px; margin-right: 10px; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); text-decoration: none; color: white;">
+          Descargar APK
+        </a>
+        <!-- Botón de Instalación PWA -->
+        <button id="btn-install-pwa" class="btn-primary"
+          style="display: none; padding: 6px 12px; font-size: 0.75rem; border-radius: 20px; margin-right: 10px;">
+          Instalar App
+        </button>
         <button class="nav-icon-btn" id="theme-toggle" title="Tema">
           <svg id="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
             stroke-width="2">
@@ -209,7 +211,7 @@
             </div>
             <div class="hf-card">
               <div class="hf-icon">💜</div>
-              <div class="hf-text"><b>Hecho en EC</b><small>Para el mundo</small></div>
+              <div class="hf-text"><b>Hecho en ECU</b><small>Para el mundo</small></div>
             </div>
           </div>
         </div>
@@ -419,10 +421,12 @@
             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h3>🎶 Mis Listas</h3>
             <button class="btn-ghost" id="create-playlist-btn"
-              style="color: var(--primary); background: transparent; border: 1px solid var(--primary); padding: 6px 16px; border-radius: 12px; cursor: pointer; font-weight: 600;">+ Crear Lista</button>
+              style="color: var(--primary); background: transparent; border: 1px solid var(--primary); padding: 6px 16px; border-radius: 12px; cursor: pointer; font-weight: 600;">+
+              Crear Lista</button>
           </div>
           <!-- Vista de listas -->
-          <div id="playlists-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px;">
+          <div id="playlists-grid"
+            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px;">
             <div class="empty-state" style="grid-column: 1/-1;"><span>🎶</span>
               <p>Aún no tienes listas.<br>¡Crea tu primera playlist!</p>
             </div>
@@ -431,10 +435,12 @@
           <div id="playlist-detail" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
               <button class="btn-ghost" id="playlist-back-btn"
-                style="color: var(--txt-muted); background: transparent; border: 1px solid rgba(255,255,255,0.1); padding: 6px 16px; border-radius: 12px; cursor: pointer;">← Volver</button>
+                style="color: var(--txt-muted); background: transparent; border: 1px solid rgba(255,255,255,0.1); padding: 6px 16px; border-radius: 12px; cursor: pointer;">←
+                Volver</button>
               <h4 id="playlist-detail-name" style="flex:1; text-align:center; margin:0;"></h4>
               <button class="btn-ghost" id="playlist-play-all-btn"
-                style="color: #10b981; background: transparent; border: 1px solid #10b981; padding: 6px 16px; border-radius: 12px; cursor: pointer; font-weight: 600;">▶ Reproducir</button>
+                style="color: #10b981; background: transparent; border: 1px solid #10b981; padding: 6px 16px; border-radius: 12px; cursor: pointer; font-weight: 600;">▶
+                Reproducir</button>
             </div>
             <div id="playlist-songs-list" class="media-grid-layout numbered-grid">
             </div>
@@ -663,21 +669,25 @@
         <h3>Recuperar Contraseña</h3>
         <button class="modal-close" onclick="closeForgotModal()">✕</button>
       </div>
-      <p style="color: var(--txt-muted); font-size: 0.9rem; margin-bottom: 20px;">Escribe tu correo y te enviaremos un enlace seguro para restablecer tu contraseña.</p>
+      <p style="color: var(--txt-muted); font-size: 0.9rem; margin-bottom: 20px;">Escribe tu correo y te enviaremos un
+        enlace seguro para restablecer tu contraseña.</p>
       <form id="forgot-form">
         <div class="form-group">
           <label>Correo Electrónico</label>
           <input type="email" id="forgot-email" required>
         </div>
-        
+
         <div class="form-group" style="text-align: center;">
           <label>Resuelve el Captcha</label>
           <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 10px;">
-            <img id="captcha-img" src="" alt="Captcha" style="border-radius: 8px; border: 1px solid var(--a2); min-height: 90px; width: 280px; background: #fff;">
-            <button type="button" class="btn-secondary" onclick="window.loadCaptcha()" style="font-size: 0.8rem; padding: 5px 10px;">↻ Recargar Captcha</button>
+            <img id="captcha-img" src="" alt="Captcha"
+              style="border-radius: 8px; border: 1px solid var(--a2); min-height: 90px; width: 280px; background: #fff;">
+            <button type="button" class="btn-secondary" onclick="window.loadCaptcha()"
+              style="font-size: 0.8rem; padding: 5px 10px;">↻ Recargar Captcha</button>
           </div>
           <input type="hidden" id="captcha-id">
-          <input type="text" id="captcha-code" placeholder="Escribe los números de la imagen" required style="text-align: center; font-size: 1.2rem; letter-spacing: 4px;">
+          <input type="text" id="captcha-code" placeholder="Escribe los números de la imagen" required
+            style="text-align: center; font-size: 1.2rem; letter-spacing: 4px;">
         </div>
 
         <button type="submit" class="btn-primary full-width" id="btn-forgot-submit">Enviar Enlace</button>
@@ -692,7 +702,8 @@
         <h3>Restablecer Contraseña</h3>
         <button class="modal-close" onclick="closeResetModal()">✕</button>
       </div>
-      <p style="color: var(--txt-muted); font-size: 0.9rem; margin-bottom: 20px;">Ingresa tu nueva contraseña para acceder a tu cuenta.</p>
+      <p style="color: var(--txt-muted); font-size: 0.9rem; margin-bottom: 20px;">Ingresa tu nueva contraseña para
+        acceder a tu cuenta.</p>
       <form id="reset-form">
         <div class="form-group">
           <label>Nueva Contraseña</label>
@@ -724,17 +735,20 @@
   <!-- SUCCESS MODAL -->
   <div id="success-modal" class="modal" style="z-index: 3000;">
     <div class="modal-content" style="text-align: center; padding: 40px 20px; max-width: 450px;">
-      <div id="success-icon" style="font-size: 4rem; color: #10b981; margin-bottom: 20px; text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);">
+      <div id="success-icon"
+        style="font-size: 4rem; color: #10b981; margin-bottom: 20px; text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);">
         ✓</div>
       <h3 id="success-title" style="margin-bottom: 15px; font-size: 1.5rem;">¡Operación Exitosa!</h3>
       <p id="success-message" style="color: var(--txt-muted); font-size: 1.1rem; line-height: 1.5;"></p>
-      <button class="btn-primary" style="margin-top: 20px; padding: 10px 30px;" onclick="document.getElementById('success-modal').classList.remove('active')">Entendido</button>
+      <button class="btn-primary" style="margin-top: 20px; padding: 10px 30px;"
+        onclick="document.getElementById('success-modal').classList.remove('active')">Entendido</button>
     </div>
   </div>
 
   <!-- YouTube IFrame API (Para reproducción 100% estable) -->
-  <div id="yt-player-container" style="position: absolute; top: -9999px; left: -9999px; width: 1px; height: 1px; overflow: hidden; pointer-events: none;">
-      <div id="yt-handler"></div>
+  <div id="yt-player-container"
+    style="position: absolute; top: -9999px; left: -9999px; width: 1px; height: 1px; overflow: hidden; pointer-events: none;">
+    <div id="yt-handler"></div>
   </div>
   <script src="https://www.youtube.com/iframe_api"></script>
   <script src="/static/app.js?v=41"></script>

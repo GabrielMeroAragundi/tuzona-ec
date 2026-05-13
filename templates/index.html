@@ -64,16 +64,6 @@
         <a href="#generos" class="nav-link">Géneros</a>
       </div>
       <div class="nav-actions">
-        <!-- Botón para descargar APK real -->
-        <a href="/static/tuzona_ec.apk" download id="btn-download-apk" class="btn-secondary"
-          style="display: none; padding: 6px 12px; font-size: 0.75rem; border-radius: 20px; margin-right: 10px; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); text-decoration: none; color: white;">
-          Descargar APK
-        </a>
-        <!-- Botón de Instalación PWA -->
-        <button id="btn-install-pwa" class="btn-primary"
-          style="display: none; padding: 6px 12px; font-size: 0.75rem; border-radius: 20px; margin-right: 10px;">
-          Instalar App
-        </button>
         <button class="nav-icon-btn" id="theme-toggle" title="Tema">
           <svg id="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
             stroke-width="2">
@@ -745,10 +735,9 @@
     </div>
   </div>
 
-  <!-- YouTube IFrame API (Para reproducción 100% estable) -->
-  <div id="yt-player-container"
-    style="position: fixed; top: -500px; left: -500px; width: 200px; height: 200px; opacity: 0.01; pointer-events: none; z-index: -1;">
-    <div id="yt-handler"></div>
+  <!-- YouTube IFrame API -->
+  <div id="yt-player-container" style="position: absolute; top: -9999px; left: -9999px; width: 1px; height: 1px; overflow: hidden; pointer-events: none;">
+      <div id="yt-handler"></div>
   </div>
   <script src="https://www.youtube.com/iframe_api"></script>
   <script src="/static/app.js?v=41"></script>

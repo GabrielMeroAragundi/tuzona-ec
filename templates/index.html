@@ -747,7 +747,7 @@
 
   <!-- YouTube IFrame API (Para reproducción 100% estable) -->
   <div id="yt-player-container"
-    style="position: absolute; top: -9999px; left: -9999px; width: 1px; height: 1px; overflow: hidden; pointer-events: none;">
+    style="position: fixed; top: -500px; left: -500px; width: 200px; height: 200px; opacity: 0.01; pointer-events: none; z-index: -1;">
     <div id="yt-handler"></div>
   </div>
   <script src="https://www.youtube.com/iframe_api"></script>

@@ -1078,7 +1078,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.onYouTubeIframeAPIReady = () => {
         ytPlayer = new YT.Player('yt-handler', {
-            height: '1', width: '1', videoId: '',
+            height: '200', width: '200', videoId: '',
             playerVars: { 
                 'autoplay': 1, 
                 'controls': 0, 
@@ -1285,6 +1285,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 playerTitle.textContent = video.title;
                 setupMediaSession(video);
                 if (window.addToHistory) window.addToHistory(video);
+
+                // TEMPORIZADOR DE EMERGENCIA (4 segundos)
+                // Si YouTube no arranca en 4s, saltamos al audio directo
+                const fallbackTimeout = setTimeout(() => {
+                    if (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING && backgroundAudioUrl) {
+                        console.log("YouTube bloqueado, usando motor de audio directo...");
+                        activeEngine = 'audio';
+                        mainAudio.src = backgroundAudioUrl;
+                        mainAudio.play().catch(() => {});
+                    }
+                }, 4000);
 
                 // PREPARAR RELEVO EN SILENCIO (Búsqueda inmediata en segundo plano)
                 fetch(`/api/stream_url/${video.id}`)

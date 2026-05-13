@@ -220,7 +220,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
                 const data = await res.json();
                 loader.style.display = 'none';
-                renderResults(data.songs);
+                
+                // EL SERVIDOR ENVÍA 'songs'
+                const songs = data.songs || [];
+                renderResults(songs);
+                
+                // Actualizar contadores de pestañas
+                const songCount = document.getElementById('s-tab-count');
+                if (songCount) songCount.textContent = `${songs.length} resultados`;
+
+                document.getElementById('search-results').classList.remove('hidden');
                 document.getElementById('tendencias').style.display = 'none';
                 document.getElementById('home').style.display = 'none';
             } catch (err) {
@@ -270,12 +279,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            console.log("Iniciando carga de tendencias...");
             const res = await fetch('/api/trending');
             if (!res.ok) throw new Error("Servidor respondió con error: " + res.status);
             
-            const songs = await res.json();
-            console.log("Tendencias recibidas:", songs.length);
+            const data = await res.json();
+            
+            // EL SERVIDOR ENVÍA 'trending'
+            const songs = data.trending || [];
 
             if (!songs || songs.length === 0) {
                 if (loader) loader.innerHTML = '<p style="color:var(--txt-muted)">No hay tendencias disponibles en este momento. Intenta buscar una canción.</p>';

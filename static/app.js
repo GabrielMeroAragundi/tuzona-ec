@@ -1189,11 +1189,14 @@ document.addEventListener('DOMContentLoaded', () => {
             watchdogTimer = setInterval(() => {
                 if (ytPlayer && ytPlayer.getPlayerState && activeEngine === 'youtube') {
                     const state = ytPlayer.getPlayerState();
+                    // Solo intentamos reanudar si está pausado y no está cargando
                     if (state === YT.PlayerState.PAUSED) {
                         ytPlayer.playVideo();
+                        // Si el audio silencioso se paró, lo despertamos también
+                        if (mainAudio && mainAudio.paused) mainAudio.play().catch(() => {});
                     }
                 }
-            }, 1000);
+            }, 1500); // Un poco más lento para evitar el parpadeo "loco"
         } else {
             if (watchdogTimer) clearInterval(watchdogTimer);
             watchdogTimer = null;
@@ -1258,6 +1261,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     btnPlay.addEventListener('click', () => {
+        // ACTIVACIÓN PREVIA: Abrimos el canal de audio justo en el clic
+        if (mainAudio && mainAudio.paused) {
+            mainAudio.src = SILENT_MP3;
+            mainAudio.play().catch(() => {});
+        }
+
         if (activeEngine === 'audio') {
             if (mainAudio.paused) mainAudio.play();
             else mainAudio.pause();
@@ -1266,8 +1275,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             if (!ytPlayer || !ytPlayer.getPlayerState) return;
             const state = ytPlayer.getPlayerState();
-            if (state === YT.PlayerState.PLAYING) ytPlayer.pauseVideo();
-            else ytPlayer.playVideo();
+            if (state === YT.PlayerState.PLAYING) {
+                ytPlayer.pauseVideo();
+            } else {
+                ytPlayer.playVideo();
+            }
         }
     });
 

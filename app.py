@@ -187,7 +187,6 @@ def index():
 
 @app.route('/api/search', methods=['GET'])
 def api_search():
-    from youtubesearchpython import VideosSearch, ChannelsSearch, PlaylistsSearch
     query = request.args.get('q', '')
     try:
         max_results = int(request.args.get('limit', 40))
@@ -201,53 +200,43 @@ def api_search():
     if cache_key in SEARCH_CACHE:
         return jsonify(SEARCH_CACHE[cache_key])
 
-    print(f"Buscando con ytmusicapi: {query}")
+    print(f"Buscando con YTMusic: {query}")
     try:
         from ytmusicapi import YTMusic
-        ytmusic = YTMusic()
+        yt = YTMusic()
+        results = yt.search(query, filter="songs", limit=max_results)
         
-        # Filtramos por "songs" para priorizar canciones oficiales
-        results = ytmusic.search(query, filter="songs", limit=max_results)
-        
-        videos = []
+        songs = []
         for v in results:
             vid_id = v.get('videoId')
             if not vid_id: continue
             
             title = v.get('title', 'Sin título')
-            duration_str = v.get('duration', 'N/A')
+            duration = v.get('duration', '3:45')
             
-            # Obtener el nombre del artista (el primero o todos)
             artists_list = v.get('artists', [])
-            channel_str = ", ".join([a.get('name', '') for a in artists_list]) if artists_list else "Unknown"
+            channel = ", ".join([a.get('name', '') for a in artists_list]) if artists_list else "Unknown"
             
-            # Obtener la mejor miniatura posible
             thumbnails = v.get('thumbnails', [])
-            thumbnail_url = thumbnails[-1].get('url', '') if thumbnails else ""
+            thumb = thumbnails[-1].get('url', '') if thumbnails else ""
             
-            # YTMusicAPI no devuelve 'year' o 'published' explícitamente en el search básico de forma consistente
-            # Podemos usar datos de álbum si están disponibles
-            album = v.get('album')
-            album_name = album.get('name', '') if album else ""
-            
-            videos.append({
+            songs.append({
                 'id': vid_id,
                 'title': title,
-                'duration': duration_str,
-                'thumbnail': thumbnail_url,
-                'channel': channel_str,
-                'year': 2026, # Default
-                'published': album_name[:50] if album_name else channel_str
+                'duration': duration,
+                'thumbnail': thumb,
+                'channel': channel
             })
 
-        print(f"Total canciones encontradas para '{query}': {len(videos)}")
-        response_data = {'results': videos}
+        print(f"Total canciones encontradas: {len(songs)}")
+        response_data = {'songs': songs}
         SEARCH_CACHE[cache_key] = response_data
         return jsonify(response_data)
 
     except Exception as e:
         import traceback
         traceback.print_exc()
+        return jsonify({'error': str(e), 'songs': []}), 200
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/search_artists', methods=['GET'])
@@ -471,68 +460,43 @@ def download_videos():
 
 @app.route('/api/trending', methods=['GET'])
 def get_trending():
-    """Devuelve 3 canciones trending del día para las cards del hero."""
-    from youtubesearchpython import VideosSearch
+    """Devuelve canciones trending del día usando YTMusic."""
     try:
-        query = 'musica nueva 2025 oficial'
-        search = VideosSearch(query, limit=20)
-        trending = []
-        seen = set()
-        current_year = 2026
+        from ytmusicapi import YTMusic
+        yt = YTMusic()
+        # Intentar obtener charts (tendencias reales)
+        try:
+            charts = yt.get_charts(country='EC') # Ecuador
+            songs_data = charts.get('songs', {}).get('items', [])
+        except:
+            # Fallback a búsqueda de éxitos si falla get_charts
+            songs_data = yt.search('musica tendencia ecuador 2025', filter='songs', limit=20)
 
-        for _ in range(2):
-            results = search.result()
-            entries = results.get('result', [])
-            if not entries:
-                break
-            for v in entries:
-                if not v:
-                    continue
-                title = v.get('title', '')
-                title_lower = title.lower()
-                if re.search(r'\b(live|en vivo|mix|concert)\b', title_lower):
-                    continue
-                # Filtrar sin views (próximos estrenos)
-                view_cnt = v.get('viewCount') or {}
-                pub_time_raw = v.get('publishedTime')
-                if pub_time_raw is None and view_cnt.get('text') is None:
-                    continue
-                # Duración < 10 min
-                dur = v.get('duration', '')
-                if dur:
-                    parts = dur.split(':')
-                    try:
-                        if len(parts) >= 3 or (len(parts) == 2 and int(parts[0]) > 10):
-                            continue
-                    except (ValueError, IndexError):
-                        pass
-                vid_id = v.get('id')
-                if not vid_id or vid_id in seen:
-                    continue
-                seen.add(vid_id)
-                thumbnails = v.get('thumbnails', [])
-                thumb = thumbnails[0].get('url', '') if thumbnails else ''
-                trending.append({
-                    'id': vid_id,
-                    'title': title,
-                    'channel': v.get('channel', {}).get('name', ''),
-                    'thumbnail': thumb
-                })
-                if len(trending) >= 3:
-                    break
-            if len(trending) >= 3:
-                break
-            try:
-                search.next()
-            except Exception:
-                break
+        trending = []
+        for s in songs_data[:20]:
+            vid_id = s.get('videoId')
+            if not vid_id: continue
+            
+            title = s.get('title', 'Sin título')
+            artists = s.get('artists', [])
+            channel = ", ".join([a.get('name', '') for a in artists]) if artists else "TuZona EC"
+            
+            thumbnails = s.get('thumbnails', [])
+            thumb = thumbnails[-1].get('url', '') if thumbnails else ""
+            
+            trending.append({
+                'id': vid_id,
+                'title': title,
+                'channel': channel,
+                'thumbnail': thumb
+            })
 
         return jsonify({'trending': trending})
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e), 'trending': []}), 200
 
+        return jsonify({'error': str(e), 'trending': []}), 200
 
 # Rutas de Autenticación
 def send_verification_email(username, email, token):

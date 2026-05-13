@@ -225,10 +225,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const songs = data.songs || [];
                 renderResults(songs);
                 
-                // Ocultar cabeceras de tabla que ya no sirven para las tarjetas
+                // Ocultar cabeceras de tabla pero mostrar la barra de control profesional
                 const tableHeader = document.querySelector('.list-table-header');
                 if (tableHeader) tableHeader.style.display = 'none';
-                if (controlsPanel) controlsPanel.style.display = 'none';
+                
+                if (controlsPanel) {
+                    controlsPanel.style.display = 'flex';
+                    controlsPanel.classList.remove('hidden');
+                }
 
                 // Actualizar contadores de pestañas
                 const songCount = document.getElementById('s-tab-count');
@@ -247,18 +251,27 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderResults(songs) {
         if (!songs || !Array.isArray(songs)) return;
         
-        // Cambiar el contenedor a modo cuadrícula
         resultsContainer.className = "media-grid-layout numbered-grid";
         
         resultsContainer.innerHTML = songs.map((s, index) => {
             const safeTitle = s.title.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
             const safeChannel = (s.channel || '').replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+            const isSelected = selectedVideos.has(s.id);
 
             return `
-                <div class="card" onclick="playSong('${s.id}', '${safeTitle}', '${safeChannel}', '${s.thumbnail}')">
+                <div class="card search-card ${isSelected ? 'selected' : ''}" data-id="${s.id}" onclick="playSong('${s.id}', '${safeTitle}', '${safeChannel}', '${s.thumbnail}')">
                     <div class="card-img-wrapper">
                         <img src="${s.thumbnail}" alt="" class="card-img" loading="lazy">
                         <div class="card-badge">${index + 1}</div>
+                        
+                        <!-- Selector Profesional -->
+                        <div class="card-selector-overlay" onclick="event.stopPropagation()">
+                            <label class="custom-checkbox-wrapper">
+                                <input type="checkbox" class="song-checkbox" data-id="${s.id}" ${isSelected ? 'checked' : ''}>
+                                <span class="custom-checkbox pro-checkbox"></span>
+                            </label>
+                        </div>
+
                         <button class="play-btn">
                             <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                         </button>
@@ -270,6 +283,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
         }).join('');
+        
+        attachCheckboxListeners();
     }
 
     function attachCheckboxListeners() {

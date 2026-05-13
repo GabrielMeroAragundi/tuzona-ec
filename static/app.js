@@ -231,53 +231,70 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderResults(songs) {
-        resultsContainer.innerHTML = songs.map((s, index) => `
-            <div class="list-table-row" onclick="playSong('${s.id}', '${s.title.replace(/'/g, "\\'")}', '${s.channel.replace(/'/g, "\\'")}', '${s.thumbnail}')">
-                <div class="lth-col lth-num">${index + 1}</div>
-                <div class="lth-col lth-song">
-                    <img src="${s.thumbnail}" alt="" style="width:40px;height:40px;border-radius:4px;margin-right:12px;">
-                    <div>
-                        <div style="font-weight:600;color:var(--txt);">${s.title}</div>
-                        <div style="font-size:0.8rem;color:var(--txt-muted);">${s.channel}</div>
+        if (!songs || !Array.isArray(songs)) return;
+        resultsContainer.innerHTML = songs.map((s, index) => {
+            const safeTitle = s.title.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+            const safeChannel = (s.channel || '').replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+            return `
+                <div class="list-table-row" onclick="playSong('${s.id}', '${safeTitle}', '${safeChannel}', '${s.thumbnail}')">
+                    <div class="lth-col lth-num">${index + 1}</div>
+                    <div class="lth-col lth-song">
+                        <img src="${s.thumbnail}" alt="" style="width:40px;height:40px;border-radius:4px;margin-right:12px;">
+                        <div>
+                            <div style="font-weight:600;color:var(--txt);">${s.title}</div>
+                            <div style="font-size:0.8rem;color:var(--txt-muted);">${s.channel}</div>
+                        </div>
+                    </div>
+                    <div class="lth-col lth-artist">${s.channel}</div>
+                    <div class="lth-col lth-album">Single</div>
+                    <div class="lth-col lth-time">${s.duration || '3:45'}</div>
+                    <div class="lth-col lth-dl">
+                        <button class="play-btn-circle" style="background:var(--primary);color:white;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        </button>
                     </div>
                 </div>
-                <div class="lth-col lth-artist">${s.channel}</div>
-                <div class="lth-col lth-album">Single</div>
-                <div class="lth-col lth-time">${s.duration || '3:45'}</div>
-                <div class="lth-col lth-dl">
-                    <button class="play-btn-circle" style="background:var(--primary);color:white;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                    </button>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     /* ── TRENDING ── */
     const loadTrendingSongs = async () => {
         const grid = document.getElementById('trending-grid');
+        const loader = document.getElementById('trending-loader');
         if (!grid) return;
         try {
             const res = await fetch('/api/trending');
             const songs = await res.json();
+            if (!songs || songs.length === 0) {
+                if (loader) loader.innerHTML = '<p>No hay tendencias disponibles ahora.</p>';
+                return;
+            }
             grid.style.display = 'grid';
-            document.getElementById('trending-loader').style.display = 'none';
-            grid.innerHTML = songs.map((s, index) => `
-                <div class="card" onclick="playSong('${s.id}', '${s.title.replace(/'/g, "\\'")}', '${s.channel.replace(/'/g, "\\'")}', '${s.thumbnail}')">
-                    <div class="card-img-wrapper">
-                        <img src="${s.thumbnail}" alt="" class="card-img" loading="lazy">
-                        <div class="card-badge">${index + 1}</div>
-                        <button class="play-btn">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                        </button>
+            if (loader) loader.style.display = 'none';
+            grid.innerHTML = songs.map((s, index) => {
+                const safeTitle = s.title.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+                const safeChannel = (s.channel || '').replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+                return `
+                    <div class="card" onclick="playSong('${s.id}', '${safeTitle}', '${safeChannel}', '${s.thumbnail}')">
+                        <div class="card-img-wrapper">
+                            <img src="${s.thumbnail}" alt="" class="card-img" loading="lazy">
+                            <div class="card-badge">${index + 1}</div>
+                            <button class="play-btn">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            </button>
+                        </div>
+                        <div class="card-info">
+                            <div class="card-title">${s.title}</div>
+                            <div class="card-channel">${s.channel}</div>
+                        </div>
                     </div>
-                    <div class="card-info">
-                        <div class="card-title">${s.title}</div>
-                        <div class="card-channel">${s.channel}</div>
-                    </div>
-                </div>
-            `).join('');
-        } catch (e) { console.error("Error loading trending:", e); }
+                `;
+            }).join('');
+        } catch (e) { 
+            console.error("Error loading trending:", e);
+            if (loader) loader.innerHTML = '<p>Error al cargar tendencias. Reintenta pronto.</p>';
+        }
     };
 
     /* ── AUTH UI ── */

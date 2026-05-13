@@ -90,13 +90,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.onYouTubeIframeAPIReady = () => {
         ytPlayer = new YT.Player('yt-handler', {
-            height: '1', width: '1', videoId: '',
+            height: '200', width: '200', videoId: '',
             playerVars: { 
                 'autoplay': 1, 
                 'controls': 0, 
                 'disablekb': 1, 
                 'modestbranding': 1,
-                'enablejsapi': 1
+                'enablejsapi': 1,
+                'playsinline': 1
             },
             events: { 
                 'onReady': () => console.log("Player Ready"), 
@@ -135,6 +136,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (ytPlayer && ytPlayer.loadVideoById) {
             ytPlayer.loadVideoById(video.id);
+            // Explicitly call playVideo to ensure playback starts on mobile devices
+            if (ytPlayer.playVideo) ytPlayer.playVideo();
+            
             setupMediaSession(video);
             if (window.addToHistory) window.addToHistory(video);
         }

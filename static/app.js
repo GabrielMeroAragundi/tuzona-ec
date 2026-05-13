@@ -8,6 +8,34 @@ window.showNotification = (msg, isError = false) => {
     setTimeout(() => notification.classList.remove('show'), 5000);
 };
 
+/* ── ELEMENTOS GLOBALES DE LA INTERFAZ ── */
+const playerTitle   = document.getElementById('player-title');
+const playerChannel = document.getElementById('player-channel');
+const playerThumb   = document.getElementById('player-thumb');
+const btnPlay       = document.getElementById('player-play');
+const btnNext       = document.getElementById('player-next');
+const btnPrev       = document.getElementById('player-prev');
+const btnFav        = document.getElementById('player-fav');
+const iconPlay      = document.getElementById('icon-play');
+const iconPause     = document.getElementById('icon-pause');
+const progressSlider= document.getElementById('player-progress');
+const timeCurrent   = document.getElementById('player-time-current');
+const timeTotal     = document.getElementById('player-time-total');
+const queueDownloadBtn = document.getElementById('btn-download-queue');
+const topDownloadBtn   = document.getElementById('btn-download-top');
+
+// --- VARIABLES DE ESTADO GLOBALES ---
+let ytPlayer = null;
+let progressTimer = null;
+let currentPlaylist = [];
+let currentPlayingIndex = -1;
+let activeEngine = 'youtube'; 
+let backgroundAudioUrl = null;
+let watchdogTimer = null;
+const SILENT_MP3 = "data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP8A/wD/";
+window.mainAudio = document.getElementById('main-audio-element');
+if (mainAudio) mainAudio.loop = true;
+
 window.openAuthModal = () => { document.getElementById('auth-modal').classList.add('active'); };
 window.closeAuthModal = () => { document.getElementById('auth-modal').classList.remove('active'); };
 window.openAdminModal = async () => { 
@@ -1059,30 +1087,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if(queueDownloadBtn) queueDownloadBtn.innerHTML = `Descargar (0)`;
         if(topDownloadBtn) topDownloadBtn.innerHTML = `Descargar Seleccionadas`;
-      /* ── ELEMENTOS DE LA INTERFAZ (Movidos al inicio por seguridad) ── */
-    const playerTitle   = document.getElementById('player-title');
-    const playerChannel = document.getElementById('player-channel');
-    const playerThumb   = document.getElementById('player-thumb');
-    const btnPlay       = document.getElementById('player-play');
-    const btnNext       = document.getElementById('player-next');
-    const btnPrev       = document.getElementById('player-prev');
-    const btnFav        = document.getElementById('player-fav');
-    const iconPlay      = document.getElementById('icon-play');
-    const iconPause     = document.getElementById('icon-pause');
-    const progressSlider= document.getElementById('player-progress');
-    const timeCurrent   = document.getElementById('player-time-current');
-    const timeTotal     = document.getElementById('player-time-total');
-    
-    // --- VARIABLES DE CONTROL ---
-    let ytPlayer = null;
-    let progressTimer = null;
-    let currentPlaylist = [];
-    let currentPlayingIndex = -1;
-    let activeEngine = 'youtube'; 
-    const SILENT_MP3 = "data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP8A/wD/";
-    window.mainAudio = document.getElementById('main-audio-element');
-    if (mainAudio) mainAudio.loop = true;
-    // --- NUEVO MOTOR DE REPRODUCCIÓN (YOUTUBE IFRAME API) ---
 
     window.onYouTubeIframeAPIReady = () => {
         ytPlayer = new YT.Player('yt-handler', {
@@ -1207,9 +1211,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- MOTOR DE PERSISTENCIA Y RELEVO ---
-    let watchdogTimer = null;
-    let backgroundAudioUrl = null; // Almacena el relevo en silencio
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {

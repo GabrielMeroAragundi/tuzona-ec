@@ -254,8 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Volver a modo tabla profesional
         resultsContainer.className = "list-table-body";
         
-        const today = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
-
         resultsContainer.innerHTML = songs.map((s, index) => {
             const safeTitle = s.title.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
             const safeChannel = (s.channel || '').replace(/'/g, "&apos;").replace(/"/g, "&quot;");
@@ -269,20 +267,28 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span class="custom-checkbox"></span>
                         </label>
                     </div>
-                    <div class="lth-col lth-num">${index + 1}</div>
                     <div class="lth-col lth-song">
                         <img src="${s.thumbnail}" alt="" class="row-thumb">
                         <div class="song-info-meta">
                             <div class="song-title-main">${s.title}</div>
                         </div>
                     </div>
-                    <div class="lth-col lth-artist">${s.channel}</div>
-                    <div class="lth-col lth-album">${s.year && s.year !== '2025' ? s.year : 'Single'}</div>
-                    <div class="lth-col lth-time"><span style="margin-right: 4px; opacity: 0.7;">⏱</span> ${s.duration || '3:45'}</div>
-                    <div class="lth-col lth-genre"><span class="genre-pill">Música</span></div>
-                    <div class="lth-col lth-date">${today}</div>
+                    <div class="lth-col lth-artist">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--primary)" stroke-width="2" style="margin-right:4px;">
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                            <line x1="12" y1="19" x2="12" y2="22" />
+                        </svg>
+                        ${s.channel}
+                    </div>
                     <div class="lth-col lth-opt">
-                        <button class="opt-btn" onclick="event.stopPropagation()">⋮</button>
+                        <button class="opt-btn" onclick="event.stopPropagation(); downloadSingle('${s.id}')">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
             `;

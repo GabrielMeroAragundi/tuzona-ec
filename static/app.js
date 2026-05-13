@@ -1188,19 +1188,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 ]
             });
             
-            // CONFIGURAR INTERCEPTOR DE PAUSA Y BOTONES
+            // CONFIGURAR BOTONES (Sin interceptor agresivo que cause bucles)
             const actions = [
                 ['play', () => { if(ytPlayer) ytPlayer.playVideo(); if(mainAudio) mainAudio.play(); }],
-                ['pause', () => { 
-                    // Si el sistema intenta pausar al salir, forzamos la reanudación
-                    if (document.visibilityState === 'hidden') {
-                        if(ytPlayer) ytPlayer.playVideo(); 
-                        if(mainAudio) mainAudio.play();
-                    } else {
-                        if(ytPlayer) ytPlayer.pauseVideo();
-                        if(mainAudio) mainAudio.pause();
-                    }
-                }],
+                ['pause', () => { if(ytPlayer) ytPlayer.pauseVideo(); if(mainAudio) mainAudio.pause(); }],
                 ['previoustrack', () => { if(btnPrev) btnPrev.click(); }],
                 ['nexttrack', () => { if(btnNext) btnNext.click(); }],
                 ['seekbackward', () => { if(ytPlayer) ytPlayer.seekTo(ytPlayer.getCurrentTime() - 10); }],
@@ -1210,9 +1201,6 @@ document.addEventListener('DOMContentLoaded', () => {
             actions.forEach(([action, handler]) => {
                 try { navigator.mediaSession.setActionHandler(action, handler); } catch(e) {}
             });
-            
-            // Forzar estado activo
-            navigator.mediaSession.playbackState = 'playing';
         }
     }
 
@@ -1234,18 +1222,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (watchdogTimer) clearInterval(watchdogTimer);
             watchdogTimer = setInterval(() => {
-                if (ytPlayer && ytPlayer.getPlayerState && activeEngine === 'youtube') {
+                // Solo vigilar si realmente queremos que suene
+                if (activeEngine === 'youtube' && ytPlayer && ytPlayer.getPlayerState) {
                     const state = ytPlayer.getPlayerState();
                     if (state === YT.PlayerState.PAUSED) {
                         ytPlayer.playVideo();
-                        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
                     }
                 }
-                if (mainAudio && mainAudio.paused && activeEngine === 'audio') {
+                if (activeEngine === 'audio' && mainAudio && mainAudio.paused) {
                     mainAudio.play().catch(() => {});
-                    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
                 }
-            }, 1500);
+            }, 2000); // 2 segundos es el equilibrio perfecto
         } else {
             // RELEVO DE REGRESO: Volver a YouTube cuando el usuario abra la App
             if (activeEngine === 'audio' && mainAudio) {

@@ -220,12 +220,21 @@ def api_search():
             thumbnails = v.get('thumbnails', [])
             thumb = thumbnails[-1].get('url', '') if thumbnails else ""
             
+            # Intentar obtener el año (a veces viene en album o directamente)
+            year = v.get('year')
+            if not year:
+                album = v.get('album')
+                if album and isinstance(album, dict):
+                    # A veces el año está en el nombre del album o como campo
+                    year = album.get('year')
+            
             songs.append({
                 'id': vid_id,
                 'title': title,
                 'duration': duration,
                 'thumbnail': thumb,
-                'channel': channel
+                'channel': channel,
+                'year': year or '2025'
             })
 
         print(f"Total canciones encontradas: {len(songs)}")
